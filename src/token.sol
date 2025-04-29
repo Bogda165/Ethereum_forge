@@ -6,9 +6,9 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 // Your token contract
 contract Token is Ownable, ERC20 {
-    string private constant _symbol = "TKN"; // Ваш символ токена
-    string private constant _name = "My Token"; // Название вашего токена
-    bool private _mintingEnabled = true; // Флаг разрешения минтинга
+    string private constant _symbol = "BBC";
+    string private constant _name = "BigBlackCoin";
+    bool private _mintingEnabled = true;
 
     constructor() ERC20(_name, _symbol) Ownable() {
         // Инициализация, если необходима
