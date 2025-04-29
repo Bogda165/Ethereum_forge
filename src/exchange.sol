@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./token.sol";
-import "forge-std/console.sol";
+import "../lib/forge-std/src/console.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract TokenExchange is Ownable {
@@ -27,7 +27,7 @@ contract TokenExchange is Ownable {
     // Constant: x * y = k
     uint private k;
 
-    constructor() Ownable(msg.sender) {}
+    constructor() Ownable() {}
 
     // Function createPool: Initializes a liquidity pool between your Token and ETH.
     // ETH will be sent to pool in this transaction as msg.value
