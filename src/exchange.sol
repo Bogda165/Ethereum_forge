@@ -1,44 +1,42 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-
 import './token.sol';
-import "hardhat/console.sol";
-
+import "forge-std/console.sol";
+import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract TokenExchange is Ownable {
     string public exchange_name = '';
 
     address tokenAddr;                                  // TODO: paste token contract address here
-    Token public token = Token(tokenAddr);                                
+    Token public token = Token(tokenAddr);
 
     // Liquidity pool for the exchange
     uint private token_reserves = 0;
     uint private eth_reserves = 0;
 
-    mapping(address => uint) private lps; 
-     
+    mapping(address => uint) private lps;
+
     // Needed for looping through the keys of the lps mapping
-    address[] private lp_providers;                     
+    address[] private lp_providers;
 
     // liquidity rewards
-    uint private swap_fee_numerator = 3;                
+    uint private swap_fee_numerator = 3;
     uint private swap_fee_denominator = 100;
 
     // Constant: x * y = k
     uint private k;
 
-    constructor() {}
-    
+    constructor() Ownable(msg.sender) {}
 
     // Function createPool: Initializes a liquidity pool between your Token and ETH.
     // ETH will be sent to pool in this transaction as msg.value
     // amountTokens specifies the amount of tokens to transfer from the liquidity provider.
     // Sets up the initial exchange rate for the pool by setting amount of token and amount of ETH.
     function createPool(uint amountTokens)
-        external
-        payable
-        onlyOwner
+    external
+    payable
+    onlyOwner
     {
         // This function is already implemented for you; no changes needed.
 
@@ -74,25 +72,25 @@ contract TokenExchange is Ownable {
     // ============================================================
     //                    FUNCTIONS TO IMPLEMENT
     // ============================================================
-    
-    /* ========================= Liquidity Provider Functions =========================  */ 
+
+    /* ========================= Liquidity Provider Functions =========================  */
 
     // Function addLiquidity: Adds liquidity given a supply of ETH (sent to the contract as msg.value).
     // You can change the inputs, or the scope of your function, as needed.
-    function addLiquidity(uint max_exchange_rate, uint min_exchange_rate) 
-        external 
-        payable
+    function addLiquidity(uint max_exchange_rate, uint min_exchange_rate)
+    external
+    payable
     {
         /******* TODO: Implement this function *******/
-       
+
     }
 
 
     // Function removeLiquidity: Removes liquidity given the desired amount of ETH to remove.
     // You can change the inputs, or the scope of your function, as needed.
     function removeLiquidity(uint amountETH, uint max_exchange_rate, uint min_exchange_rate)
-        public 
-        payable
+    public
+    payable
     {
         /******* TODO: Implement this function *******/
 
@@ -101,22 +99,22 @@ contract TokenExchange is Ownable {
     // Function removeAllLiquidity: Removes all liquidity that msg.sender is entitled to withdraw
     // You can change the inputs, or the scope of your function, as needed.
     function removeAllLiquidity(uint max_exchange_rate, uint min_exchange_rate)
-        external
-        payable
+    external
+    payable
     {
         /******* TODO: Implement this function *******/
-    
+
     }
     /***  Define additional functions for liquidity fees here as needed ***/
 
 
-    /* ========================= Swap Functions =========================  */ 
+    /* ========================= Swap Functions =========================  */
 
     // Function swapTokensForETH: Swaps your token with ETH
     // You can change the inputs, or the scope of your function, as needed.
     function swapTokensForETH(uint amountTokens, uint max_exchange_rate)
-        external 
-        payable
+    external
+    payable
     {
         /******* TODO: Implement this function *******/
 
@@ -128,8 +126,8 @@ contract TokenExchange is Ownable {
     // ETH is sent to contract as msg.value
     // You can change the inputs, or the scope of your function, as needed.
     function swapETHForTokens(uint max_exchange_rate)
-        external
-        payable 
+    external
+    payable
     {
         /******* TODO: Implement this function *******/
 
