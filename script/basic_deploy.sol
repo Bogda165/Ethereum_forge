@@ -7,7 +7,7 @@ import "forge-std/Script.sol";
 contract BasicDeployment is Script {
     address public deployerAddr;
 
-    constructor() {
+    function run() public{
         deployerAddr = getDeployerAddr();
 
         assert(deployerAddr != address(0x0));
@@ -18,6 +18,7 @@ contract BasicDeployment is Script {
 
         vm.stopBroadcast();
     }
+
 
     function deploy() public {
         Token token = deployToken();

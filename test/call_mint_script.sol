@@ -4,8 +4,8 @@ import "forge-std/Test.sol";
 import "../src/token.sol";
 
 contract CallMintScript is Test {
-    address token_addr = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512;
-    address sender = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address token_addr = 0x4859614cbe8bbe9ccad991cc69394343943cd52d;
+    address sender = 0x0000000000000000000000000000000000000003;
 
     function setUp() public {
         uint256 codeSize;
