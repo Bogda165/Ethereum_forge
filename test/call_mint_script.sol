@@ -2,30 +2,42 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "../src/token.sol";
+import "../src/exchange.sol";
+import {CustomTestBase} from "../test/TestBase.sol";
 
-contract CallMintScript is Test {
-    address token_addr = 0x4859614cbe8bbe9ccad991cc69394343943cd52d;
-    address sender = 0x0000000000000000000000000000000000000003;
 
-    function setUp() public {
-        uint256 codeSize;
-        address addr = token_addr;
-        assembly { codeSize := extcodesize(addr) }
+contract CallMintScript is CustomTestBase {
 
-        console.log("Contract code size:", codeSize);
-        require(codeSize > 0, "Contract does not exist at the provided address");
+    function setUp() public override {
+        super.setUp();
+        vm.startPrank(DEPLOYER);
     }
 
-    function testInteraction() public {
-        Token t = Token(token_addr);
-        console.log("Token name:", t.name());
-        console.log("Token own:", t.owner());
-        vm.prank(t.owner());
-        t.mint(1000000000000000000);
-        console.log("Token balance:", t.balanceOf(t.owner()));
-        vm.prank(t.owner());
+    function getBalance(address addr) public returns (uint256) {
+        try token.balanceOf(addr) returns (uint256 balanceBefore) {
+            console.log("Balance before: %s", balanceBefore);
+            return balanceBefore;
+        } catch Error(string memory reason) {
+            console.log("Error: balanceOf call reverted with reason: %s", reason);
+            return 0;
+        } catch {
+            console.log("Error: balanceOf call reverted with unknown reason");
+            return 0;
+        }
+    }
 
-        t.mint(1000000000000000000);
-        console.log("Token balance:", t.balanceOf(t.owner()));
+
+    function testMint() public {
+        console.log("Code size at TOKEN_ADDRESS: %s", address(TOKEN_ADDRESS).code.length);
+        console.log(address(this));
+
+        address addr = DEPLOYER;
+        uint addition = 100;
+
+        uint state_before = getBalance(addr);
+        token.mint( addition);
+        uint state_after = getBalance(addr);
+
+        assert(state_before + addition == state_after);
     }
 }

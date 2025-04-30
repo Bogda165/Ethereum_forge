@@ -5,22 +5,18 @@ import "../src/exchange.sol";
 import "forge-std/Script.sol";
 
 contract BasicDeployment is Script {
-    address public deployerAddr;
+    uint256 public pk;
 
     function run() public{
-        deployerAddr = getDeployerAddr();
+        pk = getDeployerPK();
 
-        assert(deployerAddr != address(0x0));
-
-        vm.startBroadcast(deployerAddr);
-
+        vm.startBroadcast(pk);
         deploy();
-
         vm.stopBroadcast();
     }
 
-
     function deploy() public {
+
         Token token = deployToken();
 
         console.log("Deployed Token on addr: %", address(token));
@@ -41,5 +37,10 @@ contract BasicDeployment is Script {
     function getDeployerAddr() public returns (address) {
         string memory senderGetKey = "DEPLOYER";
         return vm.envAddress(senderGetKey);
+    }
+
+    function getDeployerPK() public returns (uint256) {
+        string memory senderGetKey = "PRIVATE_KEY";
+        return vm.envUint(senderGetKey);
     }
 }

@@ -24,12 +24,15 @@ contract TokenExchange is Ownable {
     uint private swap_fee_numerator = 3;
     uint private swap_fee_denominator = 100;
 
-    // Constant: x * y = k
+    // (T + x) * (E - y) = k
+    // y = E - k / (T + x)
+
+    // Constant: T * E = k;  E = k / (T - sentTokens)
     uint private k;
 
     constructor(address _token_addr) Ownable(msg.sender) {
-         token_addr = _token_addr;
-         token = Token(_token_addr);
+        token_addr = _token_addr;
+        token = Token(_token_addr);
 
         require(address(token) == token_addr);
     }
@@ -116,17 +119,44 @@ contract TokenExchange is Ownable {
 
     // Function swapTokensForETH: Swaps your token with ETH
     // You can change the inputs, or the scope of your function, as needed.
-    function swapTokensForETH(
-        uint amountTokens,
-        uint max_exchange_rate
-    ) external payable {
-        /******* TODO: Implement this function *******/
+    // y = E - k / (T + x)
+    function swapTokensForETH(uint amountTokens, uint min_eth_received) external {
+        require(amountTokens > 0, "Amount must be greater than 0");
+
+        console.log("K before ", k);
+        (uint feeNumerator, uint feeDenominator) = getSwapFee();
+
+        uint initialK = token_reserves * eth_reserves;
+
+        uint amountInWithFee = amountTokens * (feeDenominator - feeNumerator);
+        uint numerator = amountInWithFee * eth_reserves;
+        uint denominator = (token_reserves * feeDenominator) + amountInWithFee;
+        uint ethToSend = numerator / denominator;
+
+        require(ethToSend >= min_eth_received, "Slippage limit reached");
+
+        token.transferFrom(msg.sender, address(this), amountTokens);
+
+        token_reserves += amountTokens;
+        eth_reserves -= ethToSend;
+
+        k = token_reserves * eth_reserves;
+        console.log("K after computations: ", k);
+
+        assert(k >= initialK);
+
+        payable(msg.sender).transfer(ethToSend);
+
     }
 
     // Function swapETHForTokens: Swaps ETH for your tokens
     // ETH is sent to contract as msg.value
     // You can change the inputs, or the scope of your function, as needed.
     function swapETHForTokens(uint max_exchange_rate) external payable {
-        /******* TODO: Implement this function *******/
+        // get ETH amount from msg.value
+        // calculaet a fee
+        // calculate a course
+        // check with exhcnage rate
+        // pay
     }
 }
