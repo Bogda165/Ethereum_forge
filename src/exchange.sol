@@ -31,7 +31,7 @@ contract TokenExchange is Ownable {
          token_addr = _token_addr;
          token = Token(_token_addr);
 
-        require(address(token) == this.token_addr);
+        require(address(token) == token_addr);
     }
 
     // Function createPool: Initializes a liquidity pool between your Token and ETH.
