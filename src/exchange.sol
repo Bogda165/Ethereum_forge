@@ -8,8 +8,8 @@ import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 contract TokenExchange is Ownable {
     string public exchange_name = "";
 
-    address tokenAddr = 0x5FbDB2315678afecb367f032d93F642f64180aa3; // TODO in local var
-    Token public token = Token(tokenAddr);
+    address public token_addr;
+    Token public token;
 
     // Liquidity pool for the exchange
     uint private token_reserves = 0;
@@ -27,7 +27,12 @@ contract TokenExchange is Ownable {
     // Constant: x * y = k
     uint private k;
 
-    constructor() Ownable(msg.sender) {}
+    constructor(address _token_addr) Ownable(msg.sender) {
+         token_addr = _token_addr;
+         token = Token(_token_addr);
+
+        require(address(token) == this.token_addr);
+    }
 
     // Function createPool: Initializes a liquidity pool between your Token and ETH.
     // ETH will be sent to pool in this transaction as msg.value

@@ -6,20 +6,31 @@ import "../src/token.sol";
 
 contract CallMintScript is Test {
     Token public token;
-    address token_addr = 0x5FbDB2315678afecb367f032d93F642f64180aa3;
+    address token_addr = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512;
     address sender = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     function testInteraction() public {
-        // Connect to the live contract
+        vm.createSelectFork("http://localhost:8545");
 
-        IERC20 tokenInterface = IERC20(token_addr);
+        token = Token(token_addr);
 
-        vm.startPrank(sender);
+        console.log("Token addr:", address(token));
 
-        token.mint(200);
+        //token = Token(token_addr);
 
-        vm.stopPrank();
+        console.log("toke owner: ", token.owner());
 
-        console.log("Owners balance: ", tokenInterface.balanceOf(sender));
+        // assertEq(sender, token.owner());
+
+        //vm.startPrank(token.owner());
+
+        // try token.mint(200) {
+        //     // Success
+        // } catch Error(string memory reason) {
+        //     console.log("Revert reason:", reason);
+        // } catch (bytes memory data) {
+        //     console.log("Raw error data");
+        //     console.logBytes(data);
+        // }
     }
 }
