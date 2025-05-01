@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "./token.sol";
 import "../lib/forge-std/src/console.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import {tokens_swap_to_eth_test} from "../test/tokens_swap_to_eth_test.sol";
 import "forge-std/console.sol";
 
 contract TokenExchange is Ownable {
@@ -89,11 +88,28 @@ contract TokenExchange is Ownable {
 
     // Function addLiquidity: Adds liquidity given a supply of ETH (sent to the contract as msg.value).
     // You can change the inputs, or the scope of your function, as needed.
-    function addLiquidity(
-        uint max_exchange_rate,
-        uint min_exchange_rate
-    ) external payable {
-        /******* TODO: Implement this function *******/
+    function addLiquidity(uint max_exchange_rate, uint min_exchange_rate) external payable {
+        require(msg.value > 0, "There are no ETH in transaction");
+        require(token_reserves > 0 && eth_reserves > 0, "Pool not initialized");
+
+        uint required_tokens = (token_reserves * msg.value) / eth_reserves;
+
+        uint actual_rate = required_tokens * 1e18 / msg.value;
+
+        require(actual_rate <= max_exchange_rate, "Exchange rate too high");
+        require(actual_rate >= min_exchange_rate, "Exchange rate too low");
+
+        token.transferFrom(msg.sender, address(this), required_tokens);
+
+        token_reserves += required_tokens;
+        eth_reserves += msg.value;
+        k = token_reserves * eth_reserves;
+
+        // add LP
+        if (lps[msg.sender] == 0) {
+            lp_providers.push(msg.sender);
+        }
+        lps[msg.sender] += msg.value;
     }
 
     // Function removeLiquidity: Removes liquidity given the desired amount of ETH to remove.
@@ -104,6 +120,31 @@ contract TokenExchange is Ownable {
         uint min_exchange_rate
     ) public payable {
         /******* TODO: Implement this function *******/
+    }
+
+    function removeLiquidity(uint ethAmount) external {
+        require(ethAmount > 0, "Must withdraw more than 0");
+        require(lps[msg.sender] >= ethAmount, "Not enough LP balance");
+
+        uint tokenAmount = (ethAmount * token_reserves) / eth_reserves;
+
+        eth_reserves -= ethAmount;
+        token_reserves -= tokenAmount;
+        k = token_reserves * eth_reserves;
+
+        lps[msg.sender] -= ethAmount;
+
+        if (lps[msg.sender] == 0) {
+            for (uint i = 0; i < lp_providers.length; i++) {
+                if (lp_providers[i] == msg.sender) {
+                    removeLP(i);
+                    break;
+                }
+            }
+        }
+
+        payable(msg.sender).transfer(ethAmount);
+        require(token.transfer(msg.sender, tokenAmount), "Token transfer failed");
     }
 
     // Function removeAllLiquidity: Removes all liquidity that msg.sender is entitled to withdraw
@@ -164,23 +205,25 @@ contract TokenExchange is Ownable {
         return yAmount;
     }
 
-    function mySwapTokensForETH(uint tokenAmount) external payable {
+    function mySwapTokensForETH(uint tokenAmount, uint min_eth_receive) external payable {
         require(tokenAmount > 0, "Amount must be greater than 0");
 
         uint ethAmount = getInputPrice(tokenAmount, token_reserves, eth_reserves);
 
         console.log("From %s tokens, receiver will get %s eth", tokenAmount, ethAmount);
 
+        uint required_tokens = ((token_reserves * ethAmount) / eth_reserves) * 1e18 / ethAmount;
+        require(min_eth_receive < ethAmount, "minimum exhcange rate was broken");
+        require(address(this).balance >= ethAmount, "Insufficient ETH balance");
+
+        token.transferFrom(msg.sender, address(this), tokenAmount);
+        payable(msg.sender).transfer(ethAmount);
+
         //update tokens
         token_reserves += tokenAmount;
         eth_reserves -= ethAmount;
-
-        token.transferFrom(msg.sender, address(this), tokenAmount);
-
-        require(address(this).balance >= ethAmount, "Insufficient ETH balance");
-
-        payable(msg.sender).transfer(ethAmount);
     }
+
 
     // Function swapETHForTokens: Swaps ETH for your tokens
     // ETH is sent to contract as msg.value
@@ -194,13 +237,16 @@ contract TokenExchange is Ownable {
 
         console.log("From %s eths, receiver will get %s tokens", ethAmount, tokenAmount);
 
+        require(token.balanceOf(address(this)) > tokenAmount, "Does not have enogh tokens");
+
+        uint required_tokens = ((token_reserves * ethAmount) / eth_reserves) * 1e18 / msg.value;
+        require(required_tokens < ethAmount, "maximum exhcange rate was broken");
+
+        token.approve(address(this), tokenAmount + 1);
+        token.transferFrom(address(this), msg.sender, tokenAmount);
+
         token_reserves -= tokenAmount;
         eth_reserves += ethAmount;
 
-        require(token.balanceOf(address(this)) > tokenAmount, "Does not have enogh tokens");
-
-        token.approve(address(this), tokenAmount + 1);
-
-        token.transferFrom(address(this), msg.sender, tokenAmount);
     }
 }
