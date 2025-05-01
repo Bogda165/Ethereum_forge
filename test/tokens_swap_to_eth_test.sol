@@ -34,7 +34,7 @@ contract tokens_swap_to_eth_test is CustomTestBase {
 
     }
 
-    function testExchange() public {
+    function testExchangeToETH() public {
         uint256 senderBalanceBefore = token.balanceOf(address(this));
         uint256 senderBalanceBeforeETH = address(this).balance;
 
@@ -47,9 +47,24 @@ contract tokens_swap_to_eth_test is CustomTestBase {
 
         console.log("Senders assets: % -> %", senderBalanceBefore, senderBalanceAfter);
         console.log("Senders assets in eth: % -> %", senderBalanceBeforeETH, senderBalanceAfterETH);
-        console.log("Senders assets in eth: ", senderBalanceAfterETH - senderBalanceBeforeETH);
 
         assert(senderBalanceBefore > senderBalanceAfter);
         assert(senderBalanceBeforeETH < senderBalanceAfterETH);
+    }
+
+    function testExchangeToTokens() public {
+        uint256 senderBalanceBefore = token.balanceOf(address(this));
+        uint256 senderBalanceBeforeETH = address(this).balance;
+
+        exchange.swapETHForTokens{value: amount * 10e18}(0);
+
+        uint256 senderBalanceAfter = token.balanceOf(address(this));
+        uint256 senderBalanceAfterETH = address(this).balance;
+
+        console.log("Senders assets: % -> %", senderBalanceBefore, senderBalanceAfter);
+        console.log("Senders assets in eth: % -> %", senderBalanceBeforeETH, senderBalanceAfterETH);
+
+        assert(senderBalanceBefore < senderBalanceAfter);
+        assert(senderBalanceBeforeETH > senderBalanceAfterETH);
     }
 }

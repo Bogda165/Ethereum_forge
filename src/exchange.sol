@@ -194,8 +194,12 @@ contract TokenExchange is Ownable {
 
         console.log("From %s eths, receiver will get %s tokens", ethAmount, tokenAmount);
 
-        token_reserves += tokenAmount;
-        eth_reserves -= ethAmount;
+        token_reserves -= tokenAmount;
+        eth_reserves += ethAmount;
+
+        require(token.balanceOf(address(this)) > tokenAmount, "Does not have enogh tokens");
+
+        token.approve(address(this), tokenAmount + 1);
 
         token.transferFrom(address(this), msg.sender, tokenAmount);
     }
