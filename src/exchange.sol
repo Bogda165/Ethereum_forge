@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import "./token.sol";
 import "../lib/forge-std/src/console.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {tokens_swap_to_eth_test} from "../test/tokens_swap_to_eth_test.sol";
+import "forge-std/console.sol";
 
 contract TokenExchange is Ownable {
     string public exchange_name = "";
@@ -126,7 +128,7 @@ contract TokenExchange is Ownable {
         console.log("K before ", k);
         (uint feeNumerator, uint feeDenominator) = getSwapFee();
 
-        uint initialK = token_reserves * eth_reserves;
+        uint initialK = k;
 
         uint amountInWithFee = amountTokens * (feeDenominator - feeNumerator);
         uint numerator = amountInWithFee * eth_reserves;
@@ -149,14 +151,52 @@ contract TokenExchange is Ownable {
 
     }
 
+    //  delta(x)(b - a)y
+    // ------------------
+    //  bx + delta(x)(b - a)
+
+    function getInputPrice(uint xAmount, uint X, uint Y) public view returns (uint) {
+        (uint a, uint b) = getSwapFee();
+
+        uint yAmount = (xAmount * (b - a) * Y)
+        / (b * X + xAmount * (b - a));
+
+        return yAmount;
+    }
+
+    function mySwapTokensForETH(uint tokenAmount) external payable {
+        require(tokenAmount > 0, "Amount must be greater than 0");
+
+        uint ethAmount = getInputPrice(tokenAmount, token_reserves, eth_reserves);
+
+        console.log("From %s tokens, receiver will get %s eth", tokenAmount, ethAmount);
+
+        //update tokens
+        token_reserves += tokenAmount;
+        eth_reserves -= ethAmount;
+
+        token.transferFrom(msg.sender, address(this), tokenAmount);
+
+        require(address(this).balance >= ethAmount, "Insufficient ETH balance");
+
+        payable(msg.sender).transfer(ethAmount);
+    }
+
     // Function swapETHForTokens: Swaps ETH for your tokens
     // ETH is sent to contract as msg.value
     // You can change the inputs, or the scope of your function, as needed.
     function swapETHForTokens(uint max_exchange_rate) external payable {
-        // get ETH amount from msg.value
-        // calculaet a fee
-        // calculate a course
-        // check with exhcnage rate
-        // pay
+        uint ethAmount = msg.value;
+
+        require(ethAmount > 0, "Amount of eth must be greater then 0");
+
+        uint tokenAmount = getInputPrice(ethAmount, eth_reserves, token_reserves);
+
+        console.log("From %s eths, receiver will get %s tokens", ethAmount, tokenAmount);
+
+        token_reserves += tokenAmount;
+        eth_reserves -= ethAmount;
+
+        token.transferFrom(address(this), msg.sender, tokenAmount);
     }
 }
