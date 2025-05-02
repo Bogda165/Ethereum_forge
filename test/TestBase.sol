@@ -11,8 +11,8 @@ contract CustomTestBase is Test {
     Token public token;
     TokenExchange public exchange;
 
-    address public TOKEN_ADDRESS = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
-    address public EXCHANGE_ADDRESS = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public TOKEN_ADDRESS;
+    address public EXCHANGE_ADDRESS;
     address constant public DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
 
     uint public tokensInThePool = 500 * 1e18;
