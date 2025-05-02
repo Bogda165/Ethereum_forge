@@ -36,7 +36,7 @@ contract tokens_swap_to_eth_test is CustomTestBase {
 
         token.approve(EXCHANGE_ADDRESS, token_amount + 10);
 
-        exchange.mySwapTokensForETH(token_amount, 0);
+        exchange.swapTokensForETH(token_amount, 0);
 
         uint256 senderBalanceAfter = token.balanceOf(address(this));
         uint256 senderBalanceAfterETH = address(this).balance;

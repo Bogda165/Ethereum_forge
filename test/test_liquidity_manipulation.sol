@@ -48,7 +48,7 @@ contract test_liquidity_manipulation is CustomTestBase {
         assert(_ethBalance < ethBalance);
         assert(_tokenBalance < tokenBalance);
 
-        exchange.removeLiquidity(500 ether, 3 * 1e18, 0);
+        exchange.removeLiquidity(250 ether, 3 * 1e18, 0);
 
         _ethBalance = address(this).balance;
         _tokenBalance = token.balanceOf(address(this));
