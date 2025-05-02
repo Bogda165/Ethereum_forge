@@ -11,12 +11,14 @@ contract CustomTestBase is Test {
     Token public token;
     TokenExchange public exchange;
 
-    address constant public TOKEN_ADDRESS = 0x9A676e781A523b5d0C0e43731313A708CB607508;
-    address constant public EXCHANGE_ADDRESS = 0x0B306BF915C4d645ff596e518fAf3F9669b97016;
+    address constant public TOKEN_ADDRESS = 0xc6e7DF5E7b4f2A278906862b61205850344D4e7d;
+    address constant public EXCHANGE_ADDRESS = 0x59b670e9fA9D0A427751Af201D676719a970857b;
     address constant public DEPLOYER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-
-    uint public tokensInThePool = 500;
-    uint public ethInThePool = 50;
+//79228162514264337593543950335
+//79228162513264337593543950335
+//79228163014264337593543950335
+    uint public tokensInThePool = 500 * 1e18;
+    uint public ethInThePool = 500;
 
     function setUp() virtual public {
         vm.createSelectFork("http://localhost:8545");

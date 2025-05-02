@@ -7,8 +7,9 @@ import "../lib/forge-std/src/console.sol";
 
 contract tokens_swap_to_eth_test is CustomTestBase {
 
-    uint private amount = 100;
-    uint private testStocks = 500;
+    uint private token_amount = 100 * 10e18;
+    uint private eth_amount = 100;
+    uint private testStocks = 500 * 10e18;
 
 
     receive() external payable {}
@@ -33,9 +34,9 @@ contract tokens_swap_to_eth_test is CustomTestBase {
         uint256 senderBalanceBefore = token.balanceOf(address(this));
         uint256 senderBalanceBeforeETH = address(this).balance;
 
-        token.approve(EXCHANGE_ADDRESS, amount + 10);
+        token.approve(EXCHANGE_ADDRESS, token_amount + 10);
 
-        exchange.mySwapTokensForETH(amount, 0);
+        exchange.mySwapTokensForETH(token_amount, 0);
 
         uint256 senderBalanceAfter = token.balanceOf(address(this));
         uint256 senderBalanceAfterETH = address(this).balance;
@@ -51,7 +52,7 @@ contract tokens_swap_to_eth_test is CustomTestBase {
         uint256 senderBalanceBefore = token.balanceOf(address(this));
         uint256 senderBalanceBeforeETH = address(this).balance;
 
-        exchange.swapETHForTokens{value: amount * 1e18}(10);
+        exchange.swapETHForTokens{value: eth_amount * 10e18}(10);
 
         uint256 senderBalanceAfter = token.balanceOf(address(this));
         uint256 senderBalanceAfterETH = address(this).balance;
