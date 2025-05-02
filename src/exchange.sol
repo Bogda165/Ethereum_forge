@@ -125,19 +125,21 @@ contract TokenExchange is Ownable {
         address sender = address(msg.sender);
 
         uint stockedTokens = lps[sender];
-        require(stockedTokens > LPTAmount, "User does not have enough tokens");
+        require(stockedTokens >= LPTAmount, "User does not have enough tokens");
 
         console.log("User has %s lpts from total %s", stockedTokens, lpts_reserves);
 
-        uint exchangeRate = token_reserves * 1e18 / eth_reserves;
+        uint exchangeRate = token_reserves * 1e18/ eth_reserves;
 
         console.log("Exchange rate:", exchangeRate);
 
         require(exchangeRate >= min_exchange_rate, "Exchange rate is out of bound(min)");
         require(exchangeRate <= max_exchange_rate, "Exchange rate is out of bound(max)");
 
+//        500000000000000000000
+//        1000000000000000000000
         uint exchangeRate2 = LPTAmount * 1e18 / lpts_reserves;
-        uint ethToReceive = eth_reserves * exchangeRate2 / 1e18;
+        uint ethToReceive = eth_reserves * exchangeRate2 / 1e18 ;
         uint tokenToReceive = token_reserves * exchangeRate2 / 1e18;
 
         eth_reserves -= ethToReceive;
