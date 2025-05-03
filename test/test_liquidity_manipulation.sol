@@ -45,14 +45,17 @@ contract test_liquidity_manipulation is CustomTestBase {
         assert(_ethBalance < ethBalance);
         assert(_tokenBalance < tokenBalance);
 
-        exchange.removeLiquidity(250 ether, 3 * 1e18, 0);
+        exchange.removeLiquidity(250 ether, exchange.calculateExchangeRateFromTokensAmount(10, 1), exchange.calculateExchangeRateFromTokensAmount(1, 10));
 
         _ethBalance = address(this).balance;
         _tokenBalance = token.balanceOf(address(this));
 
         console.log("User ETH balance:", _ethBalance);
         console.log("User token balance:", _tokenBalance);
+    }
 
-        vm.stopPrank();
+    function testRevertNotEnoughCurrency() public {
+        vm.expectRevert();
+        exchange.removeLiquidity(100000 ether, 1, 1);
     }
 }

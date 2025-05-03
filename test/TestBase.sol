@@ -20,11 +20,11 @@ contract CustomTestBase is Test {
 
     function setUp() virtual public {
         vm.startPrank(DEPLOYER);
-////        token = new Token();
-////        exchange = new TokenExchange(address(token));
-//
-//        TOKEN_ADDRESS = address(token);
-//        EXCHANGE_ADDRESS = address(exchange);
+        token = new Token();
+        exchange = new TokenExchange(address(token));
+
+        TOKEN_ADDRESS = address(token);
+        EXCHANGE_ADDRESS = address(exchange);
         vm.stopPrank();
 
         vm.createSelectFork("http://localhost:8545");
@@ -36,9 +36,17 @@ contract CustomTestBase is Test {
         console.log("Connected to TokenExchange at addr: %s", address(exchange));
 
         vm.startPrank(DEPLOYER);
+        // try to create a pool without having not enought tokesn
+        token.approve(EXCHANGE_ADDRESS, tokensInThePool);
+        vm.expectRevert();
+        exchange.createPool{value: ethInThePool * 1e18}(tokensInThePool);
+
         token.mint(tokensInThePool);
 
-        token.approve(EXCHANGE_ADDRESS, tokensInThePool);
+        // try to create with 0 eth
+        vm.expectRevert();
+        exchange.createPool{value: 0}(tokensInThePool);
+
         exchange.createPool{value: ethInThePool * 1e18}(tokensInThePool);
 
         vm.stopPrank();
