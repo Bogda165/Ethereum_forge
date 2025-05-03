@@ -36,13 +36,26 @@ jobs:
         run: |
           forge build --sizes
         id: build
+        
       - name: Remove out
         run: |
           rm -rf out
-      - name: Start anvil
+          
+      - name: Start anvil in background
         run: |
-          anvil
+          anvil &
+          echo $! > anvil.pid
+          sleep 5 # Give anvil time to start
+      
       - name: Run Forge tests
         run: |
           forge test -vvvv
         id: test
+        
+      - name: Kill anvil
+        if: always() # Ensures this step runs even if tests fail
+        run: |
+          if [ -f "anvil.pid" ]; then
+            kill $(cat anvil.pid)
+            rm anvil.pid
+          fi
