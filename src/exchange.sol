@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
 import {console} from "../lib/forge-std/src/console.sol";
@@ -11,7 +10,6 @@ contract TokenExchange is Ownable {
     address public token_addr;
     Token public token;
 
-    // Liquidity pool for the exchange
     uint private token_reserves = 0;
     uint private eth_reserves = 0;
 
@@ -19,14 +17,8 @@ contract TokenExchange is Ownable {
 
     mapping(address => uint) private lps;
 
-    // liquidity rewards
     uint private swap_fee_numerator = 3;
     uint private swap_fee_denominator = 100;
-
-    // (T + x) * (E - y) = k
-    // y = E - k / (T + x)
-
-    // Constant: T * E = k;  E = k / (T - sentTokens)
 
     constructor(address _token_addr) Ownable(msg.sender) {
         token_addr = _token_addr;
@@ -40,18 +32,10 @@ contract TokenExchange is Ownable {
         return lps[provider];
     }
 
-    // Function createPool: Initializes a liquidity pool between your Token and ETH.
-    // ETH will be sent to pool in this transaction as msg.value
-    // amountTokens specifies the amount of tokens to transfer from the liquidity provider.
-    // Sets up the initial exchange rate for the pool by setting amount of token and amount of ETH.
     function createPool(uint amountTokens) external payable onlyOwner {
-        // This function is already implemented for you; no changes needed.
-
-        // require pool does not yet exist:
         require(token_reserves == 0, "Pool already created");
         require(eth_reserves == 0, "Pool already created");
 
-        // require nonzero values were sent
         require(msg.value > 0, "Need eth to create pool.");
         uint tokenSupply = token.balanceOf(msg.sender);
         require(

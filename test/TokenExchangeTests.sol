@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
 import {CommonBase} from "../lib/forge-std/src/Base.sol";
