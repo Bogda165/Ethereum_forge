@@ -6,12 +6,12 @@ import "./TestBase.sol";
 contract TokenExchangeTest is CustomTestBase {
     address public user1 = address(0x1);
     address public user2 = address(0x2);
-    uint public initialUserFunds = 100 ether;
-    uint public initialTokenAmount = 1000 * 1e18;
+    uint256 public initialUserFunds = 100 ether;
+    uint256 public initialTokenAmount = 1000 * 1e18;
 
     receive() external payable {}
 
-    function setUp() override public {
+    function setUp() public override {
         super.setUp();
 
         // Setup test users with ETH
@@ -27,13 +27,13 @@ contract TokenExchangeTest is CustomTestBase {
     }
 
     function testSwapETHForTokens() public {
-        uint ethToSwap = 5 ether;
-        uint initialETHBalance = user1.balance;
-        uint initialTokenBalance = token.balanceOf(user1);
+        uint256 ethToSwap = 5 ether;
+        uint256 initialETHBalance = user1.balance;
+        uint256 initialTokenBalance = token.balanceOf(user1);
 
         // Calculate current exchange rate (token per wei)
-        uint currentExchangeRate = (token.balanceOf(address(exchange)) * 1e18) / address(exchange).balance;
-        uint minAcceptableRate = currentExchangeRate * 95 / 100; // 5% slippage tolerance
+        uint256 currentExchangeRate = (token.balanceOf(address(exchange)) * 1e18) / address(exchange).balance;
+        uint256 minAcceptableRate = currentExchangeRate * 95 / 100; // 5% slippage tolerance
 
         vm.startPrank(user1);
         exchange.swapETHForTokens{value: ethToSwap}(minAcceptableRate);
@@ -56,13 +56,13 @@ contract TokenExchangeTest is CustomTestBase {
     }
 
     function testSwapTokensForETH() public {
-        uint tokensToSwap = 20 * 1e18;
-        uint initialETHBalance = user1.balance;
-        uint initialTokenBalance = token.balanceOf(user1);
+        uint256 tokensToSwap = 20 * 1e18;
+        uint256 initialETHBalance = user1.balance;
+        uint256 initialTokenBalance = token.balanceOf(user1);
 
         // Calculate current exchange rate (wei per token)
-        uint currentExchangeRate = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
-        uint maxAcceptableRate = currentExchangeRate * 105 / 100; // 5% slippage tolerance
+        uint256 currentExchangeRate = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
+        uint256 maxAcceptableRate = currentExchangeRate * 105 / 100; // 5% slippage tolerance
 
         vm.startPrank(user1);
         token.approve(EXCHANGE_ADDRESS, tokensToSwap);
@@ -82,46 +82,46 @@ contract TokenExchangeTest is CustomTestBase {
 
     function testGetInputPrice() public {
         // Test the pricing function directly
-        uint ethReserves = address(exchange).balance;
-        uint tokenReserves = token.balanceOf(address(exchange));
+        uint256 ethReserves = address(exchange).balance;
+        uint256 tokenReserves = token.balanceOf(address(exchange));
 
         // Get exchange fee parameters
-        (uint feeNumerator, uint feeDenominator) = exchange.getSwapFee();
+        (uint256 feeNumerator, uint256 feeDenominator) = exchange.getSwapFee();
 
         // Test with small amount
-        uint smallEthAmount = 1 ether;
-        uint expectedTokens = exchange.getInputPrice(smallEthAmount, ethReserves, tokenReserves);
+        uint256 smallEthAmount = 1 ether;
+        uint256 expectedTokens = exchange.getInputPrice(smallEthAmount, ethReserves, tokenReserves);
 
         // Verify calculation manually
-        uint manualCalculation = (smallEthAmount * (feeDenominator - feeNumerator) * tokenReserves) /
-            (feeDenominator * ethReserves + smallEthAmount * (feeDenominator - feeNumerator));
+        uint256 manualCalculation = (smallEthAmount * (feeDenominator - feeNumerator) * tokenReserves)
+            / (feeDenominator * ethReserves + smallEthAmount * (feeDenominator - feeNumerator));
 
         assertEq(expectedTokens, manualCalculation, "Input price calculation mismatch");
 
         // Test with large amount to ensure formula works correctly
-        uint largeEthAmount = 100 ether;
-        uint expectedLargeOutput = exchange.getInputPrice(largeEthAmount, ethReserves, tokenReserves);
+        uint256 largeEthAmount = 100 ether;
+        uint256 expectedLargeOutput = exchange.getInputPrice(largeEthAmount, ethReserves, tokenReserves);
         assertGt(expectedLargeOutput, 0, "Large swap should return nonzero amount");
     }
 
     function testExchangeRateCalculation() public {
         vm.startPrank(user1);
-        uint tokenAmount = 10 * 1e18;
-        uint ethAmount = 5 ether;
+        uint256 tokenAmount = 10 * 1e18;
+        uint256 ethAmount = 5 ether;
 
         // Calculate exchange rates
-        uint calculatedRate = exchange.calculateExchangeRateFromTokensAmount(tokenAmount, ethAmount);
-        uint expectedRate = tokenAmount * 1e18 / ethAmount;
+        uint256 calculatedRate = exchange.calculateExchangeRateFromTokensAmount(tokenAmount, ethAmount);
+        uint256 expectedRate = tokenAmount * 1e18 / ethAmount;
 
         assertEq(calculatedRate, expectedRate, "Exchange rate calculation mismatch");
         vm.stopPrank();
     }
 
     function testRevertExchangeRateExceed() public {
-        uint ethToSwap = 5 ether;
-        uint currentRateMax = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
-        uint currentRateMin = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
-        uint maxRate = currentRateMax * 90 / 100;
+        uint256 ethToSwap = 5 ether;
+        uint256 currentRateMax = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
+        uint256 currentRateMin = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
+        uint256 maxRate = currentRateMax * 90 / 100;
 
         vm.startPrank(user1);
         vm.expectRevert();
@@ -143,10 +143,10 @@ contract TokenExchangeTest is CustomTestBase {
     }
 
     function testRevertExchangeRateBelowMinimum() public {
-        uint ethToSwap = 5 ether;
-        uint currentRateMax = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
-        uint currentRateMin = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
-        uint minRate = currentRateMax * 110 / 100;
+        uint256 ethToSwap = 5 ether;
+        uint256 currentRateMax = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
+        uint256 currentRateMin = (address(exchange).balance * 1e18) / token.balanceOf(address(exchange));
+        uint256 minRate = currentRateMax * 110 / 100;
 
         vm.startPrank(user1);
         vm.expectRevert();
@@ -169,16 +169,16 @@ contract TokenExchangeTest is CustomTestBase {
 
     function testMultipleUserSwaps() public {
         // User 1 swaps ETH for tokens
-        uint user1EthToSwap = 5 ether;
-        uint minRateUser1 = (token.balanceOf(address(exchange)) * 1e18 / address(exchange).balance) * 90 / 100;
+        uint256 user1EthToSwap = 5 ether;
+        uint256 minRateUser1 = (token.balanceOf(address(exchange)) * 1e18 / address(exchange).balance) * 90 / 100;
 
         vm.startPrank(user1);
         exchange.swapETHForTokens{value: user1EthToSwap}(minRateUser1);
         vm.stopPrank();
 
         // User 2 swaps tokens for ETH
-        uint user2TokensToSwap = 5 * 1e18;
-        uint maxRateUser2 = (address(exchange).balance * 1e18 / token.balanceOf(address(exchange))) * 110 / 100;
+        uint256 user2TokensToSwap = 5 * 1e18;
+        uint256 maxRateUser2 = (address(exchange).balance * 1e18 / token.balanceOf(address(exchange))) * 110 / 100;
 
         vm.startPrank(user2);
         token.approve(EXCHANGE_ADDRESS, user2TokensToSwap);
@@ -186,8 +186,8 @@ contract TokenExchangeTest is CustomTestBase {
         vm.stopPrank();
 
         // Verify exchange reserves
-        uint expectedEthReserves = ethInThePool * 1e18 + user1EthToSwap;
-        uint expectedTokenReserves = tokensInThePool - user2TokensToSwap;
+        uint256 expectedEthReserves = ethInThePool * 1e18 + user1EthToSwap;
+        uint256 expectedTokenReserves = tokensInThePool - user2TokensToSwap;
 
         // We don't know exact values due to fees, so use approximate checks
         assertGt(address(exchange).balance, ethInThePool * 1e18, "ETH reserves should increase");
@@ -195,19 +195,19 @@ contract TokenExchangeTest is CustomTestBase {
 
     function testLiquidityProviderTracking() public {
         // First add liquidity with user1
-        uint ethToAdd = 10 ether;
+        uint256 ethToAdd = 10 ether;
 
-        uint maxRate = (address(exchange).balance * 1e18 / token.balanceOf(address(exchange))) * 105 / 100;
-        uint minRate = (token.balanceOf(address(exchange)) * 1e18 / address(exchange).balance) * 95 / 100;
+        uint256 maxRate = (address(exchange).balance * 1e18 / token.balanceOf(address(exchange))) * 105 / 100;
+        uint256 minRate = (token.balanceOf(address(exchange)) * 1e18 / address(exchange).balance) * 95 / 100;
 
         vm.startPrank(user1);
-        uint tokensToAdd = (ethToAdd * token.balanceOf(address(exchange))) / address(exchange).balance;
+        uint256 tokensToAdd = (ethToAdd * token.balanceOf(address(exchange))) / address(exchange).balance;
         token.approve(EXCHANGE_ADDRESS, tokensToAdd);
         exchange.addLiquidity{value: ethToAdd}(maxRate, minRate);
         vm.stopPrank();
 
         // Check LP token balance
-        uint user1LPTokens = exchange.getLPT(user1);
+        uint256 user1LPTokens = exchange.getLPT(user1);
         assertGt(user1LPTokens, 0, "User should have LP tokens");
 
         // Add liquidity with user2
@@ -218,7 +218,7 @@ contract TokenExchangeTest is CustomTestBase {
         vm.stopPrank();
 
         // Check LP token balance
-        uint user2LPTokens = exchange.getLPT(user2);
+        uint256 user2LPTokens = exchange.getLPT(user2);
         assertGt(user2LPTokens, 0, "User should have LP tokens");
 
         // Both users should now be in the LP list
@@ -228,9 +228,9 @@ contract TokenExchangeTest is CustomTestBase {
     }
 
     function testRevertAddLiquidityWithoutTokens() public {
-        uint ethToAdd = 10 ether;
-        uint maxRate = (address(exchange).balance * 1e18 / token.balanceOf(address(exchange))) * 105 / 100;
-        uint minRate = (token.balanceOf(address(exchange)) * 1e18 / address(exchange).balance) * 95 / 100;
+        uint256 ethToAdd = 10 ether;
+        uint256 maxRate = (address(exchange).balance * 1e18 / token.balanceOf(address(exchange))) * 105 / 100;
+        uint256 minRate = (token.balanceOf(address(exchange)) * 1e18 / address(exchange).balance) * 95 / 100;
 
         vm.startPrank(user1);
         vm.expectRevert();
@@ -238,7 +238,7 @@ contract TokenExchangeTest is CustomTestBase {
         vm.stopPrank();
     }
 
-    function poolDoubleCreate() public{
+    function poolDoubleCreate() public {
         // try to create being not an owner
         vm.expectRevert();
         exchange.createPool{value: ethInThePool * 1e18}(tokensInThePool);
