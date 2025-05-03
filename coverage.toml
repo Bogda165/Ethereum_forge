@@ -1,0 +1,3 @@
+# coverage.toml
+[profile.test_coverage]
+match_source = ["src/token.sol", "src/exchange.sol"]

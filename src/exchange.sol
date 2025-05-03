@@ -22,9 +22,11 @@ contract TokenExchange is Ownable {
     uint public token_reserves = 0;
     uint public eth_reserves = 0;
 
-    uint private lpts_reserves = 0;
+    uint private lpt_reserves = 0;
 
     mapping(address => uint) private lps;
+
+    address[] private lps_list;
 
     // liquidity rewards
     uint private swap_fee_numerator = 3;
@@ -35,11 +37,22 @@ contract TokenExchange is Ownable {
 
     // Constant: T * E = k;  E = k / (T - sentTokens)
 
+
     constructor(address _token_addr) Ownable(msg.sender) {
         token_addr = _token_addr;
         token = Token(_token_addr);
 
         require(address(token) == token_addr);
+    }
+
+    function balanceOf(address lp) external returns(uint){
+        for (uint i = 0; i < lps_list.length; i++) {
+            if (lps_list[i] == lp) {
+                return lps[lps_list[i]];
+            }
+        }
+
+        return 0;
     }
 
     // Function createPool: Initializes a liquidity pool between your Token and ETH.
@@ -67,7 +80,10 @@ contract TokenExchange is Ownable {
         eth_reserves = msg.value;
 
         lps[address(msg.sender)] += msg.value;
-        lpts_reserves += msg.value;
+
+        lps_list.push(address(msg.sender));
+
+        lpt_reserves += msg.value;
     }
 
     // Function getSwapFee: Returns the current swap fee ratio to the client.
@@ -100,8 +116,12 @@ contract TokenExchange is Ownable {
         token_reserves += tokens;
         eth_reserves += eth;
 
+        if (lps[msg.sender] == 0) {
+            lps_list.push(address(msg.sender));
+        }
+
         lps[msg.sender] += msg.value;
-        lpts_reserves += msg.value;
+        lpt_reserves += msg.value;
     }
 
     // here min exhcnage rate will represent allowed minumim tokens for 1 wei and max allowed max for 1 BBC
@@ -117,7 +137,7 @@ contract TokenExchange is Ownable {
         uint stockedTokens = lps[sender];
         require(stockedTokens >= LPTAmount, "User does not have enough tokens");
 
-        console.log("User has %s lpts from total %s", stockedTokens, lpts_reserves);
+        //console.log("User has %s lpts from total %s", stockedTokens, lpt_reserves);
 
         uint exchangeRateWeiPerToken = token_reserves * 1e18 / eth_reserves;
         uint exchangeRateTokenPerWei = eth_reserves * 1e18 / token_reserves;
@@ -129,7 +149,7 @@ contract TokenExchange is Ownable {
             revert ExchangeRateBelowMinimum(min_exchange_rate, exchangeRateWeiPerToken);
         }
 
-        uint lpTokensSharePercent = LPTAmount * 1e18 / lpts_reserves;
+        uint lpTokensSharePercent = LPTAmount * 1e18 / lpt_reserves;
 
         uint ethToReceive = lpTokensSharePercent * eth_reserves / 1e18;
         uint tokenToReceive = lpTokensSharePercent * token_reserves / 1e18;
@@ -137,12 +157,24 @@ contract TokenExchange is Ownable {
         eth_reserves -= ethToReceive;
         token_reserves -= tokenToReceive;
 
-        payable(sender).transfer(ethToReceive);
+        (bool success, ) = payable(sender).call{value: ethToReceive}("");
+        require(success, "ETH transfer failed");
 
         token.transfer(sender, tokenToReceive);
 
         lps[sender] -= LPTAmount;
-        lpts_reserves -= LPTAmount;
+
+        if (lps[sender] == 0) {
+            for (uint i = 0; i < lps_list.length; i++) {
+                if (lps_list[i] == sender) {
+                    lps_list[i] = lps_list[lps_list.length - 1];
+                    lps_list.pop();
+                    break;
+                }
+            }
+        }
+
+        lpt_reserves -= LPTAmount;
     }
 
     // Function removeAllLiquidity: Removes all liquidity that msg.sender is entitled to withdraw
@@ -189,7 +221,8 @@ contract TokenExchange is Ownable {
         require(address(this).balance >= ethAmount, "Contract does not have enough wei at the moment");
 
         token.transferFrom(msg.sender, address(this), tokenAmount);
-        payable(msg.sender).transfer(ethAmount);
+        (bool success, ) = payable(msg.sender).call{value: ethAmount}("");
+        require(success, "ETH transfer failed");
 
         //update tokens
         token_reserves += tokenAmount;
