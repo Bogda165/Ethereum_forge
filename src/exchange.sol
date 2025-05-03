@@ -6,6 +6,8 @@ import "../lib/forge-std/src/console.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "forge-std/console.sol";
 
+error ExchangeRateExceed(uint256 maxRate, uint256 currentRate);
+error ExchangeRateBelowMinimum(uint256 minRate, uint256 currentRate);
 
 contract TokenExchange is Ownable {
 
@@ -83,12 +85,15 @@ contract TokenExchange is Ownable {
 
         require(token.balanceOf(address(msg.sender)) >= tokens, "User does not have enough tokens");
 
-        uint exchange_rate = token_reserves * 1e18 / eth_reserves;
+        uint exchangeRateWeiPerToken = token_reserves * 1e18 / eth_reserves;
+        uint exchangeRateTokenPerWei = eth_reserves * 1e18 / token_reserves;
 
-        console.log("Exchange rate:", exchange_rate);
-
-        require(exchange_rate >= min_exchange_rate, "Exchange rate is out of bound(min)");
-        require(exchange_rate <= max_exchange_rate, "Exchange rate is out of bound(max)");
+        if (exchangeRateWeiPerToken > max_exchange_rate) {
+            revert ExchangeRateExceed(max_exchange_rate, exchangeRateWeiPerToken);
+        }
+        if (exchangeRateTokenPerWei < min_exchange_rate)  {
+            revert ExchangeRateBelowMinimum(min_exchange_rate, exchangeRateWeiPerToken);
+        }
 
         token.transferFrom(address(msg.sender), address(this), tokens);
 
@@ -117,8 +122,12 @@ contract TokenExchange is Ownable {
         uint exchangeRateWeiPerToken = token_reserves * 1e18 / eth_reserves;
         uint exchangeRateTokenPerWei = eth_reserves * 1e18 / token_reserves;
 
-        require(exchangeRateTokenPerWei >= min_exchange_rate, "Exchange rate is out of bound(min)");
-        require(exchangeRateWeiPerToken <= max_exchange_rate, "Exchange rate is out of bound(max)");
+        if (exchangeRateWeiPerToken > max_exchange_rate) {
+            revert ExchangeRateExceed(max_exchange_rate, exchangeRateWeiPerToken);
+        }
+        if (exchangeRateTokenPerWei < min_exchange_rate)  {
+            revert ExchangeRateBelowMinimum(min_exchange_rate, exchangeRateWeiPerToken);
+        }
 
         uint lpTokensSharePercent = LPTAmount * 1e18 / lpts_reserves;
 
@@ -161,7 +170,7 @@ contract TokenExchange is Ownable {
     }
 
     // return the exchange rate for swap operation of fromToken per toToken
-    function calculateExchangeRateFromTokensAmount(uint fromToken, uint toToken) returns (uint) {
+    function calculateExchangeRateFromTokensAmount(uint fromToken, uint toToken) public returns (uint) {
         return fromToken * 1e18 / toToken;
     }
 
@@ -173,7 +182,9 @@ contract TokenExchange is Ownable {
         console.log("From %s tokens, receiver will get %s wei", tokenAmount, ethAmount);
 
         uint currentExchangeRate = eth_reserves * 1e18 / token_reserves;
-        require(max_exchange_rate <= currentExchangeRate, "Expected max exchange rate %s > %s", max_exchange_rate, currentExchangeRate);
+        if(max_exchange_rate < currentExchangeRate) {
+            revert ExchangeRateExceed(max_exchange_rate, currentExchangeRate);
+        }
 
         require(address(this).balance >= ethAmount, "Contract does not have enough wei at the moment");
 
@@ -202,7 +213,9 @@ contract TokenExchange is Ownable {
 
         // deal with exchange rate
         uint currentExchangeRate = token_reserves * 1e18 / eth_reserves;
-        require(min_exchange_rate >= currentExchangeRate, "Expected min exchange rate %s < %s", min_exchange_rate, currentExchangeRate);
+        if (min_exchange_rate > currentExchangeRate) {
+            revert ExchangeRateBelowMinimum(min_exchange_rate, currentExchangeRate);
+        }
 
         require(token.balanceOf(address(this)) > tokenAmount, "Contract does not have enought tokens");
 

@@ -37,7 +37,7 @@ contract test_liquidity_manipulation is CustomTestBase {
 
         token.approve(address(exchange), 500 * 1e18);
 
-        exchange.addLiquidity{value: 500 ether}(3 * 1e18, 0);
+        exchange.addLiquidity{value: 500 ether}(exchange.calculateExchangeRateFromTokensAmount(10, 1), exchange.calculateExchangeRateFromTokensAmount(1, 10));
 
         uint _ethBalance = address(this).balance;
         uint _tokenBalance = token.balanceOf(address(this));
