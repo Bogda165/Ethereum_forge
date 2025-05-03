@@ -11,7 +11,7 @@ import {TokenExchange} from "../src/exchange.sol";
 import {Token} from "../src/token.sol";
 
 contract CreatePoolTests is Test {
-    address constant public DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public constant DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     Token public token;
     TokenExchange public exchange;
     address public TOKEN_ADDRESS;
@@ -73,7 +73,7 @@ contract CreatePoolTests is Test {
 }
 
 contract SwapTokensForETHTests is Test {
-    address constant public DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public constant DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     Token public token;
     TokenExchange public exchange;
     address public TOKEN_ADDRESS;
@@ -93,8 +93,8 @@ contract SwapTokensForETHTests is Test {
         // Given
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint maxRate = 24; // 24% slippage
-        uint willSend = tokensInThePool / 5;
+        uint256 maxRate = 24; // 24% slippage
+        uint256 willSend = tokensInThePool / 5;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
@@ -103,30 +103,29 @@ contract SwapTokensForETHTests is Test {
         vm.startPrank(EXCHANGE_ADDRESS);
         token.transfer(DEPLOYER, tokensInThePool);
         vm.stopPrank();
-        uint balanceBefore = address(DEPLOYER).balance;
-        uint tokensBefore = token.balanceOf(DEPLOYER);
+        uint256 balanceBefore = address(DEPLOYER).balance;
+        uint256 tokensBefore = token.balanceOf(DEPLOYER);
         // When
         console.log("Deployer balance before: %s", token.balanceOf(DEPLOYER));
         vm.startPrank(DEPLOYER);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
         exchange.swapTokensForETH(willSend, ((100 + maxRate) * 1e18 / 100));
         vm.stopPrank();
-        uint balanceAfter = address(DEPLOYER).balance;
-        uint receivedEth = balanceAfter - balanceBefore;
-        uint tokensAfter = token.balanceOf(DEPLOYER);
-        uint spentTokens = tokensBefore - tokensAfter;
+        uint256 balanceAfter = address(DEPLOYER).balance;
+        uint256 receivedEth = balanceAfter - balanceBefore;
+        uint256 tokensAfter = token.balanceOf(DEPLOYER);
+        uint256 spentTokens = tokensBefore - tokensAfter;
         // Then
         assertEq(spentTokens, willSend);
         assert(receivedEth >= ((100 - maxRate) * willSend / 100));
-
     }
 
     function testShouldNotSwapTokensForETHWhenExchangeRateIsBroken() public {
         // Given
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint maxRate = 0; // 0% slippage
-        uint willSend = tokensInThePool / 5;
+        uint256 maxRate = 0; // 0% slippage
+        uint256 willSend = tokensInThePool / 5;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
@@ -135,8 +134,8 @@ contract SwapTokensForETHTests is Test {
         vm.startPrank(EXCHANGE_ADDRESS);
         token.transfer(DEPLOYER, tokensInThePool);
         vm.stopPrank();
-        uint balanceBefore = address(DEPLOYER).balance;
-        uint tokensBefore = token.balanceOf(DEPLOYER);
+        uint256 balanceBefore = address(DEPLOYER).balance;
+        uint256 tokensBefore = token.balanceOf(DEPLOYER);
         // When
         console.log("Deployer balance before: %s", token.balanceOf(DEPLOYER));
         vm.startPrank(DEPLOYER);
@@ -144,10 +143,10 @@ contract SwapTokensForETHTests is Test {
         vm.expectRevert("Exchange rate is broken");
         exchange.swapTokensForETH(willSend, ((100 + maxRate) * 1e18 / 100));
         vm.stopPrank();
-        uint balanceAfter = address(DEPLOYER).balance;
-        uint receivedEth = balanceAfter - balanceBefore;
-        uint tokensAfter = token.balanceOf(DEPLOYER);
-        uint spentTokens = tokensBefore - tokensAfter;
+        uint256 balanceAfter = address(DEPLOYER).balance;
+        uint256 receivedEth = balanceAfter - balanceBefore;
+        uint256 tokensAfter = token.balanceOf(DEPLOYER);
+        uint256 spentTokens = tokensBefore - tokensAfter;
         // Then
         assertEq(spentTokens, 0);
         assertEq(receivedEth, 0);
@@ -155,7 +154,7 @@ contract SwapTokensForETHTests is Test {
 }
 
 contract SwapETHForTokens is Test {
-    address constant public DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public constant DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     Token public token;
     TokenExchange public exchange;
     address public TOKEN_ADDRESS;
@@ -175,25 +174,25 @@ contract SwapETHForTokens is Test {
         // Given
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint maxRate = 24; // 24% slippage
-        uint willSend = ethInThePool / 5;
+        uint256 maxRate = 24; // 24% slippage
+        uint256 willSend = ethInThePool / 5;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
         exchange.createPool{value: ethInThePool * 1e18}(tokensInThePool);
         vm.stopPrank();
 
-        uint balanceBefore = token.balanceOf(DEPLOYER);
-        uint ethBefore = address(DEPLOYER).balance;
+        uint256 balanceBefore = token.balanceOf(DEPLOYER);
+        uint256 ethBefore = address(DEPLOYER).balance;
         // When
 
         vm.startPrank(DEPLOYER);
         exchange.swapETHForTokens{value: willSend}(((100 - maxRate) * 1e18 / 100));
         vm.stopPrank();
-        uint balanceAfter = token.balanceOf(DEPLOYER);
-        uint receivedTokens = balanceAfter - balanceBefore;
-        uint ethAfter = address(DEPLOYER).balance;
-        uint spentEth = ethBefore - ethAfter;
+        uint256 balanceAfter = token.balanceOf(DEPLOYER);
+        uint256 receivedTokens = balanceAfter - balanceBefore;
+        uint256 ethAfter = address(DEPLOYER).balance;
+        uint256 spentEth = ethBefore - ethAfter;
         // Then
         assertEq(spentEth, willSend);
         console.log("received tokens: %s", receivedTokens);
@@ -204,26 +203,26 @@ contract SwapETHForTokens is Test {
         // Given
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint maxRate = 0; // 0% slippage
-        uint willSend = ethInThePool / 5;
+        uint256 maxRate = 0; // 0% slippage
+        uint256 willSend = ethInThePool / 5;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
         exchange.createPool{value: ethInThePool * 1e18}(tokensInThePool);
         vm.stopPrank();
 
-        uint balanceBefore = token.balanceOf(DEPLOYER);
-        uint ethBefore = address(DEPLOYER).balance;
+        uint256 balanceBefore = token.balanceOf(DEPLOYER);
+        uint256 ethBefore = address(DEPLOYER).balance;
         // When
 
         vm.startPrank(DEPLOYER);
         vm.expectRevert("Exchange rate is broken");
         exchange.swapETHForTokens{value: willSend}(((100 - maxRate) * 1e18 / 100));
         vm.stopPrank();
-        uint balanceAfter = token.balanceOf(DEPLOYER);
-        uint receivedTokens = balanceAfter - balanceBefore;
-        uint ethAfter = address(DEPLOYER).balance;
-        uint spentEth = ethBefore - ethAfter;
+        uint256 balanceAfter = token.balanceOf(DEPLOYER);
+        uint256 receivedTokens = balanceAfter - balanceBefore;
+        uint256 ethAfter = address(DEPLOYER).balance;
+        uint256 spentEth = ethBefore - ethAfter;
         // Then
         assertEq(spentEth, 0);
         assertEq(receivedTokens, 0);
@@ -231,7 +230,7 @@ contract SwapETHForTokens is Test {
 }
 
 contract AddLiquidityTests is Test {
-    address constant public DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public constant DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     Token public token;
     TokenExchange public exchange;
     address public TOKEN_ADDRESS;
@@ -252,8 +251,8 @@ contract AddLiquidityTests is Test {
         address testAcc = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint exchangeRate = 1e18;
-        uint slippage = 0;
+        uint256 exchangeRate = 1e18;
+        uint256 slippage = 0;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
@@ -262,26 +261,27 @@ contract AddLiquidityTests is Test {
         vm.startPrank(EXCHANGE_ADDRESS);
         token.transfer(testAcc, tokensInThePool);
         vm.stopPrank();
-        uint minExchangeRate = exchangeRate * (100 - slippage) / 100;
-        uint maxExchangeRate = exchangeRate * (100 + slippage) / 100;
+        uint256 minExchangeRate = exchangeRate * (100 - slippage) / 100;
+        uint256 maxExchangeRate = exchangeRate * (100 + slippage) / 100;
         // When
         vm.startPrank(testAcc);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
         console.log("Max exchange rate: %s", maxExchangeRate);
         console.log("Min exchange rate: %s", minExchangeRate);
-        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate );
+        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate);
         vm.stopPrank();
         // Then
         uint256 lpBalance = exchange.getLPT(testAcc);
         assertEq(lpBalance, ethInThePool * 1e18);
     }
+
     function testShouldNotAddLiquidityWhenExchangeRateIsBroken() public {
         // Given
         address testAcc = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint exchangeRate = 1e18 + 1;
-        uint slippage = 0;
+        uint256 exchangeRate = 1e18 + 1;
+        uint256 slippage = 0;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
@@ -290,15 +290,15 @@ contract AddLiquidityTests is Test {
         vm.startPrank(EXCHANGE_ADDRESS);
         token.transfer(testAcc, tokensInThePool);
         vm.stopPrank();
-        uint minExchangeRate = exchangeRate * (100 - slippage) / 100;
-        uint maxExchangeRate = exchangeRate * (100 + slippage) / 100;
+        uint256 minExchangeRate = exchangeRate * (100 - slippage) / 100;
+        uint256 maxExchangeRate = exchangeRate * (100 + slippage) / 100;
         // When
         vm.startPrank(testAcc);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
         console.log("Max exchange rate: %s", maxExchangeRate);
         console.log("Min exchange rate: %s", minExchangeRate);
         vm.expectRevert();
-        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate );
+        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate);
         vm.stopPrank();
         // Then
         uint256 lpBalance = exchange.getLPT(testAcc);
@@ -307,7 +307,7 @@ contract AddLiquidityTests is Test {
 }
 
 contract RemoveLiquidityTests is Test {
-    address constant public DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public constant DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     Token public token;
     TokenExchange public exchange;
     address public TOKEN_ADDRESS;
@@ -322,14 +322,15 @@ contract RemoveLiquidityTests is Test {
         EXCHANGE_ADDRESS = address(exchange);
         vm.stopPrank();
     }
+
     function testShouldRemoveLiquidity() public {
         // Given
         address testAcc = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint exchangeRate = 1e18;
-        uint slippage = 0;
-        uint startEthBalance = address(testAcc).balance;
+        uint256 exchangeRate = 1e18;
+        uint256 slippage = 0;
+        uint256 startEthBalance = address(testAcc).balance;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
@@ -338,12 +339,12 @@ contract RemoveLiquidityTests is Test {
         vm.startPrank(EXCHANGE_ADDRESS);
         token.transfer(testAcc, tokensInThePool);
         vm.stopPrank();
-        uint minExchangeRate = exchangeRate * (100 - slippage) / 100;
-        uint maxExchangeRate = exchangeRate * (100 + slippage) / 100;
+        uint256 minExchangeRate = exchangeRate * (100 - slippage) / 100;
+        uint256 maxExchangeRate = exchangeRate * (100 + slippage) / 100;
         // When
         vm.startPrank(testAcc);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
-        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate );
+        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate);
         uint256 lpBalance = exchange.getLPT(testAcc);
         console.log("LP balance: %s", lpBalance);
         exchange.removeLiquidity(lpBalance, maxExchangeRate, minExchangeRate);
@@ -360,14 +361,14 @@ contract RemoveLiquidityTests is Test {
         console.log("LP balance after: %s", lpBalanceAfter);
     }
 
-    function testShouldNotRemoveLiquidityWhenExchangeRateIsBroken() public  {
+    function testShouldNotRemoveLiquidityWhenExchangeRateIsBroken() public {
         // Given
         address testAcc = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint exchangeRate = 1e18;
-        uint slippage = 0;
-        uint startEthBalance = address(testAcc).balance;
+        uint256 exchangeRate = 1e18;
+        uint256 slippage = 0;
+        uint256 startEthBalance = address(testAcc).balance;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
@@ -376,16 +377,16 @@ contract RemoveLiquidityTests is Test {
         vm.startPrank(EXCHANGE_ADDRESS);
         token.transfer(testAcc, tokensInThePool);
         vm.stopPrank();
-        uint minExchangeRate = exchangeRate * (100 - slippage) / 100;
-        uint maxExchangeRate = exchangeRate * (100 + slippage) / 100;
+        uint256 minExchangeRate = exchangeRate * (100 - slippage) / 100;
+        uint256 maxExchangeRate = exchangeRate * (100 + slippage) / 100;
         // When
         vm.startPrank(testAcc);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
-        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate );
+        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate);
         uint256 lpBalance = exchange.getLPT(testAcc);
         console.log("LP balance: %s", lpBalance);
         vm.expectRevert();
-        exchange.removeLiquidity(lpBalance, maxExchangeRate - 1, minExchangeRate+1);
+        exchange.removeLiquidity(lpBalance, maxExchangeRate - 1, minExchangeRate + 1);
         vm.stopPrank();
         // Then
         uint256 lpBalanceAfter = exchange.getLPT(testAcc);
@@ -401,7 +402,7 @@ contract RemoveLiquidityTests is Test {
 }
 
 contract RemoveAllLiquidityTests is Test {
-    address constant public DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public constant DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     Token public token;
     TokenExchange public exchange;
     address public TOKEN_ADDRESS;
@@ -422,9 +423,9 @@ contract RemoveAllLiquidityTests is Test {
         address testAcc = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint exchangeRate = 1e18;
-        uint slippage = 0;
-        uint startEthBalance = address(testAcc).balance;
+        uint256 exchangeRate = 1e18;
+        uint256 slippage = 0;
+        uint256 startEthBalance = address(testAcc).balance;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
@@ -433,15 +434,15 @@ contract RemoveAllLiquidityTests is Test {
         vm.startPrank(EXCHANGE_ADDRESS);
         token.transfer(testAcc, tokensInThePool);
         vm.stopPrank();
-        uint minExchangeRate = exchangeRate * (100 - slippage) / 100;
-        uint maxExchangeRate = exchangeRate * (100 + slippage) / 100;
+        uint256 minExchangeRate = exchangeRate * (100 - slippage) / 100;
+        uint256 maxExchangeRate = exchangeRate * (100 + slippage) / 100;
         // When
         vm.startPrank(testAcc);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
-        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate );
+        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate);
         uint256 lpBalance = exchange.getLPT(testAcc);
         console.log("LP balance: %s", lpBalance);
-        exchange.removeAllLiquidity( maxExchangeRate, minExchangeRate);
+        exchange.removeAllLiquidity(maxExchangeRate, minExchangeRate);
         vm.stopPrank();
         // Then
         uint256 lpBalanceAfter = exchange.getLPT(testAcc);
@@ -455,15 +456,14 @@ contract RemoveAllLiquidityTests is Test {
         console.log("LP balance after: %s", lpBalanceAfter);
     }
 
-
-    function testShouldNotRemoveAllLiquidityWhenExchangeRateIsBroken() public  {
+    function testShouldNotRemoveAllLiquidityWhenExchangeRateIsBroken() public {
         // Given
         address testAcc = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
         uint256 tokensInThePool = 500 * 1e18;
         uint256 ethInThePool = 500;
-        uint exchangeRate = 1e18;
-        uint slippage = 0;
-        uint startEthBalance = address(testAcc).balance;
+        uint256 exchangeRate = 1e18;
+        uint256 slippage = 0;
+        uint256 startEthBalance = address(testAcc).balance;
         vm.startPrank(DEPLOYER);
         token.mint(tokensInThePool * 2);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
@@ -472,16 +472,16 @@ contract RemoveAllLiquidityTests is Test {
         vm.startPrank(EXCHANGE_ADDRESS);
         token.transfer(testAcc, tokensInThePool);
         vm.stopPrank();
-        uint minExchangeRate = exchangeRate * (100 - slippage) / 100;
-        uint maxExchangeRate = exchangeRate * (100 + slippage) / 100;
+        uint256 minExchangeRate = exchangeRate * (100 - slippage) / 100;
+        uint256 maxExchangeRate = exchangeRate * (100 + slippage) / 100;
         // When
         vm.startPrank(testAcc);
         token.approve(EXCHANGE_ADDRESS, tokensInThePool);
-        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate );
+        exchange.addLiquidity{value: ethInThePool * 1e18}(maxExchangeRate, minExchangeRate);
         uint256 lpBalance = exchange.getLPT(testAcc);
         console.log("LP balance: %s", lpBalance);
         vm.expectRevert();
-        exchange.removeAllLiquidity( maxExchangeRate - 1, minExchangeRate+1);
+        exchange.removeAllLiquidity(maxExchangeRate - 1, minExchangeRate + 1);
         vm.stopPrank();
         // Then
         uint256 lpBalanceAfter = exchange.getLPT(testAcc);

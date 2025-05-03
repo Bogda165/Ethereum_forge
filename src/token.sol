@@ -8,10 +8,9 @@ contract Token is Ownable, ERC20 {
     string private constant _name = "BigBlackCoin";
     bool private _mintingEnabled = true;
 
-    constructor() ERC20(_name, _symbol) Ownable(msg.sender) {
-    }
+    constructor() ERC20(_name, _symbol) Ownable(msg.sender) {}
 
-    function mint(uint amount) public onlyOwner {
+    function mint(uint256 amount) public onlyOwner {
         require(_mintingEnabled, "Minting is disabled");
         _mint(msg.sender, amount);
     }
