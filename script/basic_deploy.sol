@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
 import "../src/exchange.sol";
@@ -7,7 +6,7 @@ import "forge-std/Script.sol";
 contract BasicDeployment is Script {
     uint256 public pk;
 
-    function run() public{
+    function run() public {
         pk = getDeployerPK();
 
         vm.startBroadcast(pk);
@@ -16,7 +15,6 @@ contract BasicDeployment is Script {
     }
 
     function deploy() public {
-
         Token token = deployToken();
 
         console.log("Deployed Token on addr: %", address(token));

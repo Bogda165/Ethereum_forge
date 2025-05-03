@@ -7,7 +7,7 @@ import "../src/exchange.sol";
 import {CustomTestBase} from "../test/TestBase.sol";
 
 contract test_liquidity_manipulation is CustomTestBase {
-    function setUp() override public {
+    function setUp() public override {
         super.setUp();
         address test_address = address(this);
 
@@ -23,24 +23,23 @@ contract test_liquidity_manipulation is CustomTestBase {
         require(test_address.balance > 0, "There are no eth on tests address");
     }
 
-//500000000000000000000
-//1000000000000000000000
-
     receive() external payable {}
 
     function testAddAndRemoveLiquidity() public {
-        uint ethBalance = address(this).balance;
-        uint tokenBalance = token.balanceOf(address(this));
+        uint256 ethBalance = address(this).balance;
+        uint256 tokenBalance = token.balanceOf(address(this));
 
         console.log("User before ETH balance:", ethBalance);
         console.log("User before token balance:", tokenBalance);
 
         token.approve(address(exchange), 500 * 1e18);
 
-        exchange.addLiquidity{value: 500 ether}(3 * 1e18, 0);
+        exchange.addLiquidity{value: 500 ether}(
+            exchange.calculateExchangeRateFromTokensAmount(10, 1), exchange.calculateExchangeRateFromTokensAmount(1, 10)
+        );
 
-        uint _ethBalance = address(this).balance;
-        uint _tokenBalance = token.balanceOf(address(this));
+        uint256 _ethBalance = address(this).balance;
+        uint256 _tokenBalance = token.balanceOf(address(this));
 
         console.log("User after liqudity added ETH balance:", _ethBalance);
         console.log("User after liqudity added token balance:", _tokenBalance);
@@ -48,14 +47,21 @@ contract test_liquidity_manipulation is CustomTestBase {
         assert(_ethBalance < ethBalance);
         assert(_tokenBalance < tokenBalance);
 
-        exchange.removeLiquidity(250 ether, 3 * 1e18, 0);
+        exchange.removeLiquidity(
+            250 ether,
+            exchange.calculateExchangeRateFromTokensAmount(10, 1),
+            exchange.calculateExchangeRateFromTokensAmount(1, 10)
+        );
 
         _ethBalance = address(this).balance;
         _tokenBalance = token.balanceOf(address(this));
 
         console.log("User ETH balance:", _ethBalance);
         console.log("User token balance:", _tokenBalance);
+    }
 
-        vm.stopPrank();
+    function testRevertNotEnoughCurrency() public {
+        vm.expectRevert();
+        exchange.removeLiquidity(100000 ether, 1, 1);
     }
 }

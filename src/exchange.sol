@@ -6,199 +6,217 @@ import "../lib/forge-std/src/console.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "forge-std/console.sol";
 
-contract TokenExchange is Ownable {
-    string public exchange_name = "";
+error ExchangeRateExceed(uint256 maxRate, uint256 currentRate);
+error ExchangeRateBelowMinimum(uint256 minRate, uint256 currentRate);
 
-    address public token_addr;
+contract TokenExchange is Ownable {
+    event Swap(address indexed sender, uint256 amountIn, uint256 amountOut, bool isETH);
+
+    address public tokenAddress;
     Token public token;
 
-    // Liquidity pool for the exchange
-    uint private token_reserves = 0;
-    uint private eth_reserves = 0;
+    uint256 public tokenReserves = 0;
+    uint256 public ethReserves = 0;
 
-    uint private lpts_reserves = 0;
+    uint256 private lptReserves = 0;
 
-    mapping(address => uint) private lps;
+    mapping(address => uint256) private lps;
 
-    // liquidity rewards
-    uint private swap_fee_numerator = 3;
-    uint private swap_fee_denominator = 100;
+    address[] private lpList;
 
-    // (T + x) * (E - y) = k
-    // y = E - k / (T + x)
+    uint256 private swapFeeNumerator = 3;
+    uint256 private swapFeeDenominator = 100;
 
-    // Constant: T * E = k;  E = k / (T - sentTokens)
+    constructor(address tokenAddr) Ownable(msg.sender) {
+        tokenAddress = tokenAddr;
+        token = Token(tokenAddr);
 
-    constructor(address _token_addr) Ownable(msg.sender) {
-        token_addr = _token_addr;
-        token = Token(_token_addr);
-
-        require(address(token) == token_addr);
+        require(address(token) == tokenAddress);
     }
 
-    // Function createPool: Initializes a liquidity pool between your Token and ETH.
-    // ETH will be sent to pool in this transaction as msg.value
-    // amountTokens specifies the amount of tokens to transfer from the liquidity provider.
-    // Sets up the initial exchange rate for the pool by setting amount of token and amount of ETH.
-    function createPool(uint amountTokens) external payable onlyOwner {
-        // This function is already implemented for you; no changes needed.
+    function getLP() public view returns (address[] memory) {
+        return lpList;
+    }
 
-        // require pool does not yet exist:
-        require(token_reserves == 0, "Token reserves was not 0");
-        require(eth_reserves == 0, "ETH reserves was not 0.");
+    function createPool(uint256 amountTokens) external payable onlyOwner {
+        require(tokenReserves == 0, "Token reserves was not 0");
+        require(ethReserves == 0, "ETH reserves was not 0.");
 
-        // require nonzero values were sent
         require(msg.value > 0, "Need eth to create pool.");
-        uint tokenSupply = token.balanceOf(msg.sender);
-        require(
-            amountTokens <= tokenSupply,
-            "Not have enough tokens to create the pool"
-        );
+        uint256 tokenSupply = token.balanceOf(msg.sender);
+        require(amountTokens <= tokenSupply, "Not have enough tokens to create the pool");
         require(amountTokens > 0, "Need tokens to create pool.");
 
         token.transferFrom(msg.sender, address(this), amountTokens);
-        token_reserves = token.balanceOf(address(this));
-        eth_reserves = msg.value;
+        tokenReserves = token.balanceOf(address(this));
+        ethReserves = msg.value;
 
         lps[address(msg.sender)] += msg.value;
-        lpts_reserves += msg.value;
+
+        lpList.push(address(msg.sender));
+
+        lptReserves += msg.value;
     }
 
-    // Function getSwapFee: Returns the current swap fee ratio to the client.
-    function getSwapFee() public view returns (uint, uint) {
-        return (swap_fee_numerator, swap_fee_denominator);
+    function getSwapFee() public view returns (uint256, uint256) {
+        return (swapFeeNumerator, swapFeeDenominator);
     }
 
-    function addLiquidity(uint max_exchange_rate, uint min_exchange_rate) external payable {
+    function addLiquidity(uint256 maxExchangeRate, uint256 minExchangeRate) external payable {
         require(msg.value > 0, "There are no ETH in transaction");
-        require(token_reserves > 0 && eth_reserves > 0, "Pool not initialized");
+        require(tokenReserves > 0 && ethReserves > 0, "Pool not initialized");
 
-        // eth value
-        uint eth = msg.value;
-        uint tokens = token_reserves * eth / eth_reserves;
+        uint256 eth = msg.value;
+        uint256 tokens = tokenReserves * eth / ethReserves;
 
         require(token.balanceOf(address(msg.sender)) >= tokens, "User does not have enough tokens");
 
-        uint exchange_rate = token_reserves * 1e18 / eth_reserves;
+        uint256 exchangeRateWeiPerToken = ethReserves * 1e18 / tokenReserves;
+        uint256 exchangeRateTokenPerWei = tokenReserves * 1e18 / ethReserves;
 
-        console.log("Exchange rate:", exchange_rate);
-
-        require(exchange_rate >= min_exchange_rate, "Exchange rate is out of bound(min)");
-        require(exchange_rate <= max_exchange_rate, "Exchange rate is out of bound(max)");
+        if (exchangeRateWeiPerToken > maxExchangeRate) {
+            revert ExchangeRateExceed(maxExchangeRate, exchangeRateWeiPerToken);
+        }
+        if (exchangeRateTokenPerWei < minExchangeRate) {
+            revert ExchangeRateBelowMinimum(minExchangeRate, exchangeRateWeiPerToken);
+        }
 
         token.transferFrom(address(msg.sender), address(this), tokens);
 
-        token_reserves += tokens;
-        eth_reserves += eth;
+        tokenReserves += tokens;
+        ethReserves += eth;
+
+        if (lps[msg.sender] == 0) {
+            lpList.push(address(msg.sender));
+        }
 
         lps[msg.sender] += msg.value;
-        lpts_reserves += msg.value;
+        lptReserves += msg.value;
     }
 
-    // Function removeLiquidity: Removes liquidity given the desired amount of ETH to remove.
-    // You can change the inputs, or the scope of your function, as needed.
-    function removeLiquidity(
-        uint LPTAmount,
-        uint max_exchange_rate,
-        uint min_exchange_rate
-    ) public  {
+    // @param maxExchangeRate - max price for 1 token in ETH * 1e18
+    // @param minExchangeRate - min price for 1 ETH in tokens * 1e18
+    function removeLiquidity(uint256 LPTAmount, uint256 maxExchangeRate, uint256 minExchangeRate) public {
         require(LPTAmount > 0, "There are no ETH in request");
 
         address sender = address(msg.sender);
 
-        uint stockedTokens = lps[sender];
+        uint256 stockedTokens = lps[sender];
         require(stockedTokens >= LPTAmount, "User does not have enough tokens");
 
-        console.log("User has %s lpts from total %s", stockedTokens, lpts_reserves);
+        uint256 exchangeRateWeiPerToken = tokenReserves * 1e18 / ethReserves;
+        uint256 exchangeRateTokenPerWei = ethReserves * 1e18 / tokenReserves;
 
-        uint exchangeRate = token_reserves * 1e18/ eth_reserves;
+        if (exchangeRateWeiPerToken > maxExchangeRate) {
+            revert ExchangeRateExceed(maxExchangeRate, exchangeRateWeiPerToken);
+        }
+        if (exchangeRateTokenPerWei < minExchangeRate) {
+            revert ExchangeRateBelowMinimum(minExchangeRate, exchangeRateWeiPerToken);
+        }
 
-        console.log("Exchange rate:", exchangeRate);
+        uint256 lpTokensSharePercent = LPTAmount * 1e18 / lptReserves;
 
-        require(exchangeRate >= min_exchange_rate, "Exchange rate is out of bound(min)");
-        require(exchangeRate <= max_exchange_rate, "Exchange rate is out of bound(max)");
+        uint256 ethToReceive = lpTokensSharePercent * ethReserves / 1e18;
+        uint256 tokenToReceive = lpTokensSharePercent * tokenReserves / 1e18;
 
-        uint exchangeRate2 = LPTAmount * 1e18 / lpts_reserves;
-        uint ethToReceive = eth_reserves * exchangeRate2 / 1e18 ;
-        uint tokenToReceive = token_reserves * exchangeRate2 / 1e18;
+        ethReserves -= ethToReceive;
+        tokenReserves -= tokenToReceive;
 
-        eth_reserves -= ethToReceive;
-        token_reserves -= tokenToReceive;
-
-        payable(sender).transfer(ethToReceive);
+        (bool success,) = payable(sender).call{value: ethToReceive}("");
+        require(success, "ETH transfer failed");
 
         token.transfer(sender, tokenToReceive);
 
         lps[sender] -= LPTAmount;
 
-        lpts_reserves -= LPTAmount;
+        if (lps[sender] == 0) {
+            for (uint256 i = 0; i < lpList.length; i++) {
+                if (lpList[i] == sender) {
+                    lpList[i] = lpList[lpList.length - 1];
+                    lpList.pop();
+                    break;
+                }
+            }
+        }
+
+        lptReserves -= LPTAmount;
     }
 
-    // Function removeAllLiquidity: Removes all liquidity that msg.sender is entitled to withdraw
-    // You can change the inputs, or the scope of your function, as needed.
-    function removeAllLiquidity(
-        uint max_exchange_rate,
-        uint min_exchange_rate
-    ) external payable {
-        uint lpsss = lps[address(msg.sender)];
+    // @param maxExchangeRate - max price for 1 token in ETH * 1e18
+    // @param minExchangeRate - min price for 1 ETH in tokens * 1e18
+    function removeAllLiquidity(uint256 maxExchangeRate, uint256 minExchangeRate) external payable {
+        uint256 amount = lps[address(msg.sender)];
 
-        removeLiquidity(lpsss, max_exchange_rate, min_exchange_rate);
+        removeLiquidity(amount, maxExchangeRate, minExchangeRate);
     }
 
     //  delta(x)(b - a)y
     // ------------------
     //  bx + delta(x)(b - a)
 
-    function getInputPrice(uint xAmount, uint X, uint Y) public view returns (uint) {
-        (uint a, uint b) = getSwapFee();
+    function getInputPrice(uint256 xAmount, uint256 X, uint256 Y) public view returns (uint256) {
+        (uint256 a, uint256 b) = getSwapFee();
 
-        uint yAmount = (xAmount * (b - a) * Y)
-        / (b * X + xAmount * (b - a));
+        uint256 yAmount = (xAmount * (b - a) * Y) / (b * X + xAmount * (b - a));
 
         return yAmount;
     }
 
-    function swapTokensForETH(uint tokenAmount, uint min_eth_receive) external {
-        require(tokenAmount > 0, "Amount must be greater than 0");
-
-        uint ethAmount = getInputPrice(tokenAmount, token_reserves, eth_reserves);
-
-        console.log("From %s tokens, receiver will get %s eth", tokenAmount, ethAmount);
-
-        uint required_tokens = ((token_reserves * ethAmount) / eth_reserves) * 1e18 / ethAmount;
-        require(min_eth_receive < ethAmount, "minimum exhcange rate was broken");
-        require(address(this).balance >= ethAmount, "Insufficient ETH balance");
-
-        token.transferFrom(msg.sender, address(this), tokenAmount);
-        payable(msg.sender).transfer(ethAmount);
-
-        //update tokens
-        token_reserves += tokenAmount;
-        eth_reserves -= ethAmount;
+    // return the exchange rate for swap operation of fromToken per toToken
+    function calculateExchangeRateFromTokensAmount(uint256 fromToken, uint256 toToken) public view returns (uint256) {
+        return fromToken * 1e18 / toToken;
     }
 
+    // @param maxExchangeRate - max price for 1 token in ETH * 1e18
+    function swapTokensForETH(uint256 tokenAmount, uint256 maxExchangeRate) external {
+        require(tokenAmount > 0, "Amount must be greater than 0");
 
-    // Function swapETHForTokens: Swaps ETH for your tokens
-    // ETH is sent to contract as msg.value
-    // You can change the inputs, or the scope of your function, as needed.
-    function swapETHForTokens(uint max_exchange_rate) external payable {
-        uint ethAmount = msg.value;
+        uint256 ethAmount = getInputPrice(tokenAmount, tokenReserves, ethReserves);
+        console.log("From %s tokens, receiver will get %s wei", tokenAmount, ethAmount);
+
+        uint256 currentExchangeRate = ethReserves * 1e18 / tokenReserves;
+        if (maxExchangeRate < currentExchangeRate) {
+            revert ExchangeRateExceed(maxExchangeRate, currentExchangeRate);
+        }
+
+        require(address(this).balance >= ethAmount, "Contract does not have enough wei at the moment");
+
+        token.transferFrom(msg.sender, address(this), tokenAmount);
+        (bool success,) = payable(msg.sender).call{value: ethAmount}("");
+        require(success, "ETH transfer failed");
+
+        tokenReserves += tokenAmount;
+        ethReserves -= ethAmount;
+
+        emit Swap(msg.sender, tokenAmount, ethAmount, false);
+    }
+
+    // @param minExchangeRate - min price for 1 ETH in tokens * 1e18
+    function swapETHForTokens(uint256 minExchangeRate) external payable {
+        uint256 ethAmount = msg.value;
 
         require(ethAmount > 0, "Amount of eth must be greater then 0");
 
-        uint tokenAmount = getInputPrice(ethAmount, eth_reserves, token_reserves);
-
+        uint256 tokenAmount = getInputPrice(ethAmount, ethReserves, tokenReserves);
         console.log("From %s eths, receiver will get %s tokens", ethAmount, tokenAmount);
 
-        require(token.balanceOf(address(this)) > tokenAmount, "Does not have enogh tokens");
+        uint256 currentExchangeRate = tokenReserves * 1e18 / ethReserves;
+        if (minExchangeRate > currentExchangeRate) {
+            revert ExchangeRateBelowMinimum(minExchangeRate, currentExchangeRate);
+        }
 
-        uint required_tokens = ((token_reserves * ethAmount) / eth_reserves) * 1e18 / msg.value;
-        require(required_tokens < ethAmount, "maximum exhcange rate was broken");
+        require(token.balanceOf(address(this)) > tokenAmount, "Contract does not have enough tokens");
 
         token.approve(address(this), tokenAmount + 1);
         token.transferFrom(address(this), msg.sender, tokenAmount);
 
-        token_reserves -= tokenAmount;
-        eth_reserves += ethAmount;
+        tokenReserves -= tokenAmount;
+        ethReserves += ethAmount;
+
+        emit Swap(msg.sender, ethAmount, tokenAmount, true);
+    }
+
+    function getLPT(address sender) public view returns (uint256) {
+        return lps[sender];
     }
 }
