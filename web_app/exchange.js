@@ -131,13 +131,182 @@ async function getPoolState() {
 
 /*** ADD LIQUIDITY ***/
 async function addLiquidity(amountEth, maxSlippagePct) {
-    const poolState = await getPoolState();
-    /** TODO: ADD YOUR CODE HERE **/
+    try {
+        console.log(`Adding liquidity with ${amountEth} wei and max slippage ${maxSlippagePct}%`);
+
+        const poolState = await getPoolState();
+
+        // Get token and ETH reserves directly in wei
+        const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
+        const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
+
+        console.log("Current pool state - Token reserves:", tokenReserves.toString(),
+            "ETH reserves:", ethReserves.toString());
+
+        const weiAmount = ethers.BigNumber.from(amountEth);
+
+        let expectedTokenAmount;
+        if (ethReserves.gt(0) && tokenReserves.gt(0)) {
+            expectedTokenAmount = weiAmount.mul(tokenReserves).div(ethReserves);
+            console.log("Expected token amount to add:", expectedTokenAmount.toString());
+        } else {
+            throw new Error("Pool is not initialized yet");
+        }
+
+
+        const exchangeRateWeiPerToken = ethReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(tokenReserves);
+        console.log("Base exchange rate (wei per token):", exchangeRateWeiPerToken.toString());
+
+        const maxExchangeRate = exchangeRateWeiPerToken.mul(ethers.BigNumber.from(100 + parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
+        console.log("Max acceptable rate with slippage:", maxExchangeRate.toString());
+
+
+        const exchangeRateTokenPerWei = tokenReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(ethReserves);
+        console.log("Base exchange rate (wei per token):", exchangeRateTokenPerWei.toString());
+
+        const minExchangeRate = exchangeRateTokenPerWei.mul(ethers.BigNumber.from(100 - parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
+        console.log("Max acceptable rate with slippage:", minExchangeRate.toString());
+
+
+        console.log("Min exchange rate:", minExchangeRate.toString());
+        console.log("Max exchange rate:", maxExchangeRate.toString());
+
+        // Connect to contracts
+        const signer = provider.getSigner(defaultAccount);
+        const tokenWithSigner = token_contract.connect(signer);
+        const exchangeWithSigner = exchange_contract.connect(signer);
+
+        // Check token balance and allowance
+        const userTokenBalance = await tokenWithSigner.balanceOf(defaultAccount);
+        console.log("User token balance:", userTokenBalance.toString());
+
+        if (userTokenBalance.lt(expectedTokenAmount)) {
+            throw new Error(`Insufficient token balance. You have ${userTokenBalance.toString()} but need approximately ${expectedTokenAmount.toString()}`);
+        }
+
+        const allowance = await tokenWithSigner.allowance(defaultAccount, exchange_address);
+        console.log("Current allowance:", allowance.toString());
+
+        // Approve tokens if needed
+        if (allowance.lt(expectedTokenAmount)) {
+            console.log("Approving tokens for liquidity addition...");
+            const approveTx = await tokenWithSigner.approve(exchange_address, expectedTokenAmount);
+            console.log("Approval transaction submitted:", approveTx.hash);
+
+            const approveReceipt = await approveTx.wait();
+            console.log("Approval confirmed in block:", approveReceipt.blockNumber);
+        } else {
+            console.log("Tokens already approved");
+        }
+
+        // Call addLiquidity with max and min exchange rates for slippage protection
+        console.log(`Adding liquidity with parameters:
+            - Max exchange rate: ${maxExchangeRate.toString()}
+            - Min exchange rate: ${minExchangeRate.toString()}
+            - ETH value: ${weiAmount.toString()}`);
+
+        const tx = await exchangeWithSigner.addLiquidity(
+            maxExchangeRate,
+            minExchangeRate,
+            {
+                value: weiAmount,
+                gasLimit: 300000
+            }
+        );
+
+        console.log("Transaction submitted, hash:", tx.hash);
+        console.log("Waiting for confirmation...");
+
+        const receipt = await tx.wait();
+        console.log("Liquidity added successfully in block:", receipt.blockNumber);
+        return receipt;
+
+    } catch (error) {
+        console.error("Error adding liquidity:", error);
+        throw error;
+    }
 }
 
 /*** REMOVE LIQUIDITY ***/
 async function removeLiquidity(amountEth, maxSlippagePct) {
-    /** TODO: ADD YOUR CODE HERE **/
+    try {
+        console.log(`Remove liquidity with ${amountEth} wei and max slippage ${maxSlippagePct}%`);
+
+        const poolState = await getPoolState();
+
+        // Get token and ETH reserves
+        const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
+        const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
+
+        console.log("Current pool state - Token reserves:", tokenReserves.toString(),
+            "ETH reserves:", ethReserves.toString());
+
+        const weiAmount = ethers.BigNumber.from(amountEth);
+
+        let expectedTokenAmount;
+        if (ethReserves.gt(0) && tokenReserves.gt(0)) {
+            expectedTokenAmount = weiAmount.mul(tokenReserves).div(ethReserves);
+            console.log("Expected token amount to remove:", expectedTokenAmount.toString());
+        } else {
+            throw new Error("Pool is not initialized yet");
+        }
+
+
+        const exchangeRateWeiPerToken = ethReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(tokenReserves);
+        console.log("Base exchange rate (wei per token):", exchangeRateWeiPerToken.toString());
+
+        const maxExchangeRate = exchangeRateWeiPerToken.mul(ethers.BigNumber.from(100 + parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
+        console.log("Max acceptable rate with slippage:", maxExchangeRate.toString());
+
+
+        const exchangeRateTokenPerWei = tokenReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(ethReserves);
+        console.log("Base exchange rate (wei per token):", exchangeRateTokenPerWei.toString());
+
+        const minExchangeRate = exchangeRateTokenPerWei.mul(ethers.BigNumber.from(100 - parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
+        console.log("Max acceptable rate with slippage:", minExchangeRate.toString());
+
+
+        console.log("Min exchange rate:", minExchangeRate.toString());
+        console.log("Max exchange rate:", maxExchangeRate.toString());
+
+        // Connect to contracts
+        const signer = provider.getSigner(defaultAccount);
+        const exchangeWithSigner = exchange_contract.connect(signer);
+
+        if (tokenReserves.lt(expectedTokenAmount)) {
+            throw new Error(`Currently contract have ${tokenReserves.toString()} tokens, which enough token to accept you transaction, which require approximately ${expectedTokenAmount} tokens.`)
+        }
+
+        if (ethReserves.lt(amountEth)) {
+            throw new Error(`Currently contract have ${ethReserves.toString()} wei, which enough token to accept you transaction, which require approximately ${expectedTokenAmount} wei.`)
+        }
+
+        console.log(`Remove liquidity with parameters:
+        - Max exchange rate: ${maxExchangeRate.toString()}
+        - Min exchange rate: ${minExchangeRate.toString()}
+        - ETH value: ${weiAmount.toString()}`);
+
+        const tx = await exchangeWithSigner.removeLiquidity(
+            amountEth,
+            maxExchangeRate,
+            minExchangeRate,
+            {
+                gasLimit: 300000
+            }
+        );
+
+        console.log("Transaction submitted, hash:", tx.hash);
+        console.log("Waiting for confirmation...");
+
+        const receipt = await tx.wait();
+        console.log("Liquidity removed successfully in block:", receipt.blockNumber);
+        return receipt;
+
+    } catch (error) {
+        console.error("Error adding liquidity:", error);
+        throw error;
+    }
+
 }
 
 async function removeAllLiquidity(maxSlippagePct) {

@@ -85,8 +85,8 @@ contract TokenExchange is Ownable {
 
         require(token.balanceOf(address(msg.sender)) >= tokens, "User does not have enough tokens");
 
-        uint exchangeRateWeiPerToken = token_reserves * 1e18 / eth_reserves;
-        uint exchangeRateTokenPerWei = eth_reserves * 1e18 / token_reserves;
+        uint exchangeRateWeiPerToken = eth_reserves * 1e18 / token_reserves;
+        uint exchangeRateTokenPerWei = token_reserves * 1e18 / eth_reserves;
 
         if (exchangeRateWeiPerToken > max_exchange_rate) {
             revert ExchangeRateExceed(max_exchange_rate, exchangeRateWeiPerToken);
