@@ -39,6 +39,9 @@ jobs:
       - name: Remove out
         run: |
           rm -rf out
+      - name: Start anvil
+        run: |
+          anvil
       - name: Run Forge tests
         run: |
           forge test -vvvv
