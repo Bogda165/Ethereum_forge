@@ -23,9 +23,6 @@ contract test_liquidity_manipulation is CustomTestBase {
         require(test_address.balance > 0, "There are no eth on tests address");
     }
 
-//500000000000000000000
-//1000000000000000000000
-
     receive() external payable {}
 
     function testAddAndRemoveLiquidity() public {

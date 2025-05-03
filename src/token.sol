@@ -19,6 +19,6 @@ contract Token is Ownable, ERC20 {
     }
 
     function disable_mint() public onlyOwner {
-        _mintingEnabled = false;
+        //_mintingEnabled = false;
     }
 }
