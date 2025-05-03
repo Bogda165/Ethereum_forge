@@ -207,7 +207,7 @@ contract TokenExchangeTest is CustomTestBase {
         vm.stopPrank();
 
         // Check LP token balance
-        uint user1LPTokens = exchange.balanceOf(user1);
+        uint user1LPTokens = exchange.getLPT(user1);
         assertGt(user1LPTokens, 0, "User should have LP tokens");
 
         // Add liquidity with user2
@@ -218,13 +218,13 @@ contract TokenExchangeTest is CustomTestBase {
         vm.stopPrank();
 
         // Check LP token balance
-        uint user2LPTokens = exchange.balanceOf(user2);
+        uint user2LPTokens = exchange.getLPT(user2);
         assertGt(user2LPTokens, 0, "User should have LP tokens");
 
         // Both users should now be in the LP list
         // Since we can't directly access lps_list, we verify through balanceOf
-        assertGt(exchange.balanceOf(user1), 0, "User1 should be in LP list");
-        assertGt(exchange.balanceOf(user2), 0, "User2 should be in LP list");
+        assertGt(exchange.getLPT(user1), 0, "User1 should be in LP list");
+        assertGt(exchange.getLPT(user2), 0, "User2 should be in LP list");
     }
 
     function testRevertAddLiquidityWithoutTokens() public {

@@ -1,4 +1,4 @@
-import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js';
+import {ethers} from 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js';
 
 console.log('Ethers version:', ethers.version);
 
@@ -6,13 +6,13 @@ console.log('Ethers version:', ethers.version);
 const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
 var defaultAccount = "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955";
 
-const exchange_name = 'BBC';             // TODO: fill in the name of your exchange
-const token_name = 'Bib Black TOKEN';    // TODO: replace with name of your token
-const token_symbol = 'BBC wei';          // TODO: replace with symbol for your token
+const exchange_name = 'BBC';
+const token_name = 'Bib Black TOKEN';
+const token_symbol = 'BBC wei';
 
 // Contract addresses
-const token_address = '0xb1ced0Ea42dff0c0b408168952279968169CB437';
-const exchange_address = '0x380f560152542A4157d1A729c0cfAfdbBD5453D4';
+const token_address = '0xBAb8e13DeF75a95321E9f48d3ec57f2c0141A6c3';
+const exchange_address = '0xE979a64D375F5D363d7cecF3c93B9aFD40Ba9f55';
 
 // Contract variables to be initialized after loading ABIs
 let token_contract;
@@ -98,8 +98,8 @@ async function getPoolState() {
 
     try {
         // read pool balance for each type of liquidity:
-        let liquidity_tokens = await exchange_contract.token_reserves();
-        let liquidity_eth = await exchange_contract.eth_reserves();
+        let liquidity_tokens = await exchange_contract.tokenReserves();
+        let liquidity_eth = await exchange_contract.ethReserves();
 
         console.log("Retrieved token balance:", Number(liquidity_tokens));
         console.log("Retrieved ETH balance:", Number(liquidity_eth));
@@ -522,7 +522,7 @@ async function initializeApp() {
         // Load exchange ABI
         const exchangeResponse = await fetch('../abis/exchange_abi.json');  // Make sure path is correct
         const exchange_abi = await exchangeResponse.json();
-        console.log("Exchange ABI loaded, first few entries:", exchange_abi.slice(0, 2));
+        console.log("Exchange ABI loaded, first few entries:", exchange_abi);
 
         // Create contract instances directly
         token_contract = new ethers.Contract(token_address, token_abi, provider);
@@ -562,7 +562,7 @@ async function initializeApp() {
 }
 
 // Start the application
-$(document).ready(function() {
+$(document).ready(function () {
     console.log("Document ready, initializing application...");
     initializeApp();
 
@@ -573,27 +573,27 @@ $(document).ready(function() {
 });
 
 // This runs the 'swapETHForTokens' function when you click the button
-$("#swap-eth").click(function() {
+$("#swap-eth").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     swapETHForTokens($("#amt-to-swap").val(), $("#max-slippage-swap").val()).then(response => {
-       // window.location.reload(true); // refreshes the page after transaction completes
+        // window.location.reload(true); // refreshes the page after transaction completes
     }).catch(error => {
         console.error("Error swapping ETH for tokens:", error);
     });
 });
 
 // This runs the 'swapTokensForETH' function when you click the button
-$("#swap-token").click(function() {
+$("#swap-token").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     swapTokensForETH($("#amt-to-swap").val(), $("#max-slippage-swap").val()).then(response => {
-       // window.location.reload(true);
+        // window.location.reload(true);
     }).catch(error => {
         console.error("Error swapping tokens for ETH:", error);
     });
 });
 
 // This runs the 'addLiquidity' function when you click the button
-$("#add-liquidity").click(function() {
+$("#add-liquidity").click(function () {
     console.log("Account: ", $("#myaccount").val());
     defaultAccount = $("#myaccount").val(); //sets the default account
     addLiquidity($("#amt-eth").val(), $("#max-slippage-liquid").val()).then(response => {
@@ -604,7 +604,7 @@ $("#add-liquidity").click(function() {
 });
 
 // This runs the 'removeLiquidity' function when you click the button
-$("#remove-liquidity").click(function() {
+$("#remove-liquidity").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     removeLiquidity($("#amt-eth").val(), $("#max-slippage-liquid").val()).then(response => {
         window.location.reload(true);
@@ -614,7 +614,7 @@ $("#remove-liquidity").click(function() {
 });
 
 // This runs the 'removeAllLiquidity' function when you click the button
-$("#remove-all-liquidity").click(function() {
+$("#remove-all-liquidity").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     removeAllLiquidity($("#max-slippage-liquid").val()).then(response => {
         window.location.reload(true);

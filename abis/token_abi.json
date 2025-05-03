@@ -86,7 +86,7 @@
   },
   {
     "type": "function",
-    "name": "disable_mint2",
+    "name": "disable_mint",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"

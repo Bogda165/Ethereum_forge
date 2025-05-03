@@ -3,7 +3,7 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "_token_addr",
+        "name": "tokenAddr",
         "type": "address",
         "internalType": "address"
       }
@@ -15,12 +15,12 @@
     "name": "addLiquidity",
     "inputs": [
       {
-        "name": "max_exchange_rate",
+        "name": "maxExchangeRate",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "min_exchange_rate",
+        "name": "minExchangeRate",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -50,7 +50,7 @@
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -67,26 +67,13 @@
   },
   {
     "type": "function",
-    "name": "eth_reserves",
+    "name": "ethReserves",
     "inputs": [],
     "outputs": [
       {
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "exchange_name",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "string",
-        "internalType": "string"
       }
     ],
     "stateMutability": "view"
@@ -109,6 +96,38 @@
         "name": "Y",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getLP",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getLPT",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -156,12 +175,12 @@
     "name": "removeAllLiquidity",
     "inputs": [
       {
-        "name": "max_exchange_rate",
+        "name": "maxExchangeRate",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "min_exchange_rate",
+        "name": "minExchangeRate",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -179,12 +198,12 @@
         "internalType": "uint256"
       },
       {
-        "name": "max_exchange_rate",
+        "name": "maxExchangeRate",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "min_exchange_rate",
+        "name": "minExchangeRate",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -204,7 +223,7 @@
     "name": "swapETHForTokens",
     "inputs": [
       {
-        "name": "min_exchange_rate",
+        "name": "minExchangeRate",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -222,7 +241,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "max_exchange_rate",
+        "name": "maxExchangeRate",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -245,7 +264,7 @@
   },
   {
     "type": "function",
-    "name": "token_addr",
+    "name": "tokenAddress",
     "inputs": [],
     "outputs": [
       {
@@ -258,7 +277,7 @@
   },
   {
     "type": "function",
-    "name": "token_reserves",
+    "name": "tokenReserves",
     "inputs": [],
     "outputs": [
       {
