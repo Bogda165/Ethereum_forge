@@ -11,8 +11,8 @@ contract CustomTestBase is Test {
     Token public token;
     TokenExchange public exchange;
 
-    address public TOKEN_ADDRESS = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
-    address public EXCHANGE_ADDRESS = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public TOKEN_ADDRESS = 0xef11D1c2aA48826D4c41e54ab82D1Ff5Ad8A64Ca;
+    address public EXCHANGE_ADDRESS = 0x39dD11C243Ac4Ac250980FA3AEa016f73C509f37;
     address constant public DEPLOYER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
 
     uint public tokensInThePool = 500 * 1e18;
@@ -20,11 +20,11 @@ contract CustomTestBase is Test {
 
     function setUp() virtual public {
         vm.startPrank(DEPLOYER);
-        token = new Token();
-        exchange = new TokenExchange(address(token));
-
-        TOKEN_ADDRESS = address(token);
-        EXCHANGE_ADDRESS = address(exchange);
+////        token = new Token();
+////        exchange = new TokenExchange(address(token));
+//
+//        TOKEN_ADDRESS = address(token);
+//        EXCHANGE_ADDRESS = address(exchange);
         vm.stopPrank();
 
         vm.createSelectFork("http://localhost:8545");

@@ -19,8 +19,8 @@ contract TokenExchange is Ownable {
     Token public token;
 
     // Liquidity pool for the exchange
-    uint private token_reserves = 0;
-    uint private eth_reserves = 0;
+    uint public token_reserves = 0;
+    uint public eth_reserves = 0;
 
     uint private lpts_reserves = 0;
 

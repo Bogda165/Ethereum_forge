@@ -11,8 +11,8 @@ const token_name = 'Bib Black TOKEN';    // TODO: replace with name of your toke
 const token_symbol = 'BBC wei';          // TODO: replace with symbol for your token
 
 // Contract addresses
-const token_address = '0xef11D1c2aA48826D4c41e54ab82D1Ff5Ad8A64Ca';
-const exchange_address = '0x39dD11C243Ac4Ac250980FA3AEa016f73C509f37';
+const token_address = '0xb1ced0Ea42dff0c0b408168952279968169CB437';
+const exchange_address = '0x380f560152542A4157d1A729c0cfAfdbBD5453D4';
 
 // Contract variables to be initialized after loading ABIs
 let token_contract;
@@ -98,8 +98,8 @@ async function getPoolState() {
 
     try {
         // read pool balance for each type of liquidity:
-        let liquidity_tokens = await token_contract.balanceOf(exchange_address);
-        let liquidity_eth = await provider.getBalance(exchange_address);
+        let liquidity_tokens = await exchange_contract.token_reserves();
+        let liquidity_eth = await exchange_contract.eth_reserves();
 
         console.log("Retrieved token balance:", Number(liquidity_tokens));
         console.log("Retrieved ETH balance:", Number(liquidity_eth));
@@ -131,6 +131,7 @@ async function getPoolState() {
 
 /*** ADD LIQUIDITY ***/
 async function addLiquidity(amountEth, maxSlippagePct) {
+    const poolState = await getPoolState();
     /** TODO: ADD YOUR CODE HERE **/
 }
 
@@ -145,11 +146,185 @@ async function removeAllLiquidity(maxSlippagePct) {
 
 /*** SWAP ***/
 async function swapTokensForETH(amountToken, maxSlippagePct) {
-    /** TODO: ADD YOUR CODE HERE **/
+    try {
+        console.log(`Swapping ${amountToken} tokens for ETH with max slippage ${maxSlippagePct}%`);
+
+        const poolState = await getPoolState();
+
+        const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
+        const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
+
+        console.log("Pool state - Token reserves:", tokenReserves.toString(), "ETH reserves:", ethReserves.toString());
+
+        // Convert input from string to BigNumber
+        const tokenAmount = ethers.BigNumber.from(amountToken);
+        console.log("Token amount to swap:", tokenAmount.toString());
+
+        // Check if the user has enough tokens
+        const signer = provider.getSigner(defaultAccount);
+        const tokenWithSigner = token_contract.connect(signer);
+        const exchangeWithSigner = exchange_contract.connect(signer);
+
+        const userTokenBalance = await tokenWithSigner.balanceOf(defaultAccount);
+        console.log("User token balance:", userTokenBalance.toString());
+
+        if (userTokenBalance.lt(tokenAmount)) {
+            throw new Error(`Insufficient token balance. You have ${userTokenBalance.toString()} but trying to swap ${tokenAmount.toString()}`);
+        }
+
+        // Calculate rate with slippage
+        const baseRate = ethReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(tokenReserves);
+        console.log("Base exchange rate (wei per token):", baseRate.toString());
+
+        // For token->ETH swap, slippage increases the max rate (reduces minimum ETH output)
+        const maxAcceptableRate = baseRate.mul(ethers.BigNumber.from(100 + parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
+        console.log("Max acceptable rate with slippage:", maxAcceptableRate.toString());
+
+        try {
+            // First check allowance
+            const allowance = await tokenWithSigner.allowance(defaultAccount, exchange_address);
+            console.log("Current allowance for exchange:", allowance.toString());
+
+            // Approve if needed - this should happen in a separate transaction
+            if (allowance.lt(tokenAmount)) {
+                console.log("Approving tokens for spending...");
+                const approveTx = await tokenWithSigner.approve(exchange_address, tokenAmount);
+                console.log("Approval transaction submitted:", approveTx.hash);
+
+                const approveReceipt = await approveTx.wait();
+                if (approveReceipt.status === 0) {
+                    throw new Error("Approval transaction failed");
+                }
+                console.log("Approval confirmed in block:", approveReceipt.blockNumber);
+            } else {
+                console.log("Already approved enough tokens");
+            }
+
+            // Double check allowance after approval
+            const newAllowance = await tokenWithSigner.allowance(defaultAccount, exchange_address);
+            console.log("Updated allowance:", newAllowance.toString());
+
+            if (newAllowance.lt(tokenAmount)) {
+                throw new Error("Approval didn't increase allowance enough");
+            }
+
+            // Now perform the actual swap - first check parameters
+            console.log(`Calling swapTokensForETH with:
+                - tokenAmount: ${tokenAmount.toString()}
+                - maxRate: ${maxAcceptableRate.toString()}`);
+
+            // Check contract function signature
+            console.log("Available functions on exchange contract:",
+                Object.keys(exchangeWithSigner.functions)
+                    .filter(f => f.startsWith('swap'))
+                    .join(', '));
+
+            // Try to estimate gas first to validate the call would succeed
+            const gasEstimate = await exchangeWithSigner.estimateGas.swapTokensForETH(
+                tokenAmount,
+                maxAcceptableRate
+            );
+            console.log("Gas estimate for swap:", gasEstimate.toString());
+
+            // Execute the swap
+            const tx = await exchangeWithSigner.swapTokensForETH(
+                tokenAmount,
+                maxAcceptableRate,
+                {
+                    gasLimit: gasEstimate.mul(12).div(10) // Add 20% buffer
+                }
+            );
+
+            console.log("Swap transaction submitted:", tx.hash);
+            const receipt = await tx.wait();
+
+            if (receipt.status === 0) {
+                throw new Error("Swap transaction failed on-chain");
+            }
+
+            console.log("Swap confirmed in block:", receipt.blockNumber);
+            return receipt;
+
+        } catch (error) {
+            console.error("Transaction execution failed:", error);
+
+            // Try to get more details about the error
+            if (error.data) {
+                console.error("Error data:", error.data);
+            }
+
+            if (error.message.includes("execution reverted")) {
+                console.log("Contract reverted the transaction. Possible reasons:");
+                console.log("1. Slippage tolerance exceeded");
+                console.log("2. Insufficient token allowance");
+                console.log("3. Contract function parameters mismatch");
+            }
+
+            throw error;
+        }
+
+    } catch (error) {
+        console.error("Error in swapTokensForETH:", error);
+        throw error;
+    }
 }
 
-async function swapETHForTokens(amountEth, maxSlippagePct) {
-    /** TODO: ADD YOUR CODE HERE **/
+async function swapETHForTokens(amountWei, maxSlippagePct) {
+    try {
+        console.log(`Swapping ${amountWei} wei for tokens with max slippage ${maxSlippagePct}%`);
+
+        const poolState = await getPoolState();
+
+        // Get token and ETH reserves directly in wei
+        const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
+        const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
+
+        console.log("Pool state - Token reserves:", tokenReserves.toString(), "ETH reserves:", ethReserves.toString());
+
+        // Convert input from string to BigNumber
+        const weiAmount = ethers.BigNumber.from(amountWei);
+
+        let expectedRate;
+        if (ethReserves.gt(0)) {
+            expectedRate = tokenReserves.div(ethReserves).mul(ethers.BigNumber.from("1000000000000000000"));
+        } else {
+            throw new Error("ETH reserves are zero");
+        }
+
+        console.log("Current expected rate:", expectedRate.toString());
+        let minExpectedRate = expectedRate.mul(ethers.BigNumber.from(100 - maxSlippagePct)).div(ethers.BigNumber.from(100));
+
+        // Connect to the exchange contract with signer
+        const signer = provider.getSigner(defaultAccount);
+        const exchangeWithSigner = exchange_contract.connect(signer);
+
+        console.log("Swapping wei for tokens with min rate:", minExpectedRate.toString());
+
+        try {
+            const tx = await exchangeWithSigner.swapETHForTokens(
+                minExpectedRate,
+                {
+                    value: weiAmount,
+                    gasLimit: 300000
+                }
+            );
+
+            console.log("Transaction submitted, hash:", tx.hash);
+            console.log("Waiting for confirmation...");
+
+            const receipt = await tx.wait();
+            console.log("Transaction confirmed in block:", receipt.blockNumber);
+            return receipt;
+
+        } catch (error) {
+            console.error("Transaction failed:", error);
+            throw error;
+        }
+
+    } catch (error) {
+        console.error("Error in swapETHForTokens:", error);
+        throw error;
+    }
 }
 
 // =============================================================================
@@ -161,14 +336,11 @@ async function initializeApp() {
     try {
         console.log("Starting application initialization...");
 
-        // Load accounts
         const accounts = await provider.listAccounts();
         if (accounts.length === 0) {
             console.error("No accounts found!");
             return;
         }
-
-        console.log("Default account set to:", defaultAccount);
 
         // Load ABIs and initialize contracts
         console.log("Loading ABIs and initializing contracts...");
@@ -235,7 +407,7 @@ $(document).ready(function() {
 $("#swap-eth").click(function() {
     defaultAccount = $("#myaccount").val(); //sets the default account
     swapETHForTokens($("#amt-to-swap").val(), $("#max-slippage-swap").val()).then(response => {
-        window.location.reload(true); // refreshes the page after transaction completes
+       // window.location.reload(true); // refreshes the page after transaction completes
     }).catch(error => {
         console.error("Error swapping ETH for tokens:", error);
     });
@@ -245,7 +417,7 @@ $("#swap-eth").click(function() {
 $("#swap-token").click(function() {
     defaultAccount = $("#myaccount").val(); //sets the default account
     swapTokensForETH($("#amt-to-swap").val(), $("#max-slippage-swap").val()).then(response => {
-        window.location.reload(true);
+       // window.location.reload(true);
     }).catch(error => {
         console.error("Error swapping tokens for ETH:", error);
     });
