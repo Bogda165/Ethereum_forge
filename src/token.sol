@@ -10,7 +10,6 @@ contract Token is Ownable, ERC20 {
     bool private _mintingEnabled = true;
 
     constructor() ERC20(_name, _symbol) Ownable(msg.sender) {
-        // Your token конструктор 
     }
 
     function mint(uint amount) public onlyOwner {
