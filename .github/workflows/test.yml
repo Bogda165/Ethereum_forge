@@ -36,8 +36,10 @@ jobs:
         run: |
           forge build --sizes
         id: build
-
+      - name: Remove out
+        run: |
+          rm -rf out
       - name: Run Forge tests
         run: |
-          forge test -vvv
+          forge test -vvvv
         id: test
