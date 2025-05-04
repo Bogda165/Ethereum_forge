@@ -21,7 +21,6 @@ contract Token is Ownable, ERC20 {
     }
 
     function mint(uint256 amount) public onlyOwner {
-        require(_mintingEnabled, "Minting is disabled");
         _mint(msg.sender, amount);
     }
 

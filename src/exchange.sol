@@ -70,6 +70,9 @@ contract TokenExchange is Ownable {
         uint256 eth = msg.value;
         uint256 tokens = tokenReserves * eth / ethReserves;
 
+        console.log("Required tokens: %s", tokens);
+        console.log("Balance         :%s", token.balanceOf(address(msg.sender)));
+
         require(token.balanceOf(address(msg.sender)) >= tokens, "User does not have enough tokens");
 
         uint256 exchangeRateWeiPerToken = ethReserves * 1e18 / tokenReserves;
@@ -169,7 +172,7 @@ contract TokenExchange is Ownable {
     }
 
     // @param maxExchangeRate - max price for 1 token in ETH * 1e18
-    function swapTokensForETH(uint256 tokenAmount, uint256 maxExchangeRate) external {
+    function swapTokensForETH(uint256 tokenAmount, uint256 maxExchangeRate) external returns(uint) {
         require(tokenAmount > 0, "Amount must be greater than 0");
 
         uint256 ethAmount = getInputPrice(tokenAmount, tokenReserves, ethReserves);
@@ -183,6 +186,9 @@ contract TokenExchange is Ownable {
         require(address(this).balance >= ethAmount, "Contract does not have enough wei at the moment");
 
         token.transferFrom(msg.sender, address(this), tokenAmount);
+        console.log("Needed to pay: %s", ethAmount);
+        console.log("Current balan: %s", address(this).balance);
+
         (bool success,) = payable(msg.sender).call{value: ethAmount}("");
         require(success, "ETH transfer failed");
 
@@ -190,10 +196,12 @@ contract TokenExchange is Ownable {
         ethReserves -= ethAmount;
 
         emit Swap(msg.sender, tokenAmount, ethAmount, false);
+
+        return ethAmount;
     }
 
     // @param minExchangeRate - min price for 1 ETH in tokens * 1e18
-    function swapETHForTokens(uint256 minExchangeRate) external payable {
+    function swapETHForTokens(uint256 minExchangeRate) external payable returns (uint){
         uint256 ethAmount = msg.value;
 
         require(ethAmount > 0, "Amount of eth must be greater then 0");
@@ -215,6 +223,8 @@ contract TokenExchange is Ownable {
         ethReserves += ethAmount;
 
         emit Swap(msg.sender, ethAmount, tokenAmount, true);
+
+        return tokenAmount;
     }
 
     function getLPT(address sender) public view returns (uint256) {
