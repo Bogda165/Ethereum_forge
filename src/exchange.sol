@@ -2,8 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./token.sol";
-import "../lib/forge-std/src/console.sol";
-import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import "../lib/solady/src/auth/Ownable.sol";
 import "forge-std/console.sol";
 
 error ExchangeRateExceed(uint256 maxRate, uint256 currentRate);
@@ -27,9 +26,11 @@ contract TokenExchange is Ownable {
     uint256 private swapFeeNumerator = 3;
     uint256 private swapFeeDenominator = 100;
 
-    constructor(address tokenAddr) Ownable(msg.sender) {
+    constructor(address tokenAddr) {
         tokenAddress = tokenAddr;
         token = Token(tokenAddr);
+
+        _initializeOwner(msg.sender);
 
         require(address(token) == tokenAddress);
     }

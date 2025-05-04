@@ -2,6 +2,9 @@
 pragma solidity ^0.8.10;
 
 import "./TestBase.sol";
+import "../src/exchange.sol";
+
+event Swap(address indexed sender, uint256 amountIn, uint256 amountOut, bool isETH);
 
 contract TokenExchangeTest is CustomTestBase {
     address public user1 = address(0x1);
@@ -246,6 +249,22 @@ contract TokenExchangeTest is CustomTestBase {
         vm.startPrank(DEPLOYER);
         vm.expectRevert();
         exchange.createPool{value: ethInThePool * 1e18}(tokensInThePool);
+        vm.stopPrank();
+    }
+
+    function testEmitAfterSwap() public {
+        uint256 ethToSwap = 5 ether;
+
+        // Calculate current exchange rate (token per wei)
+        uint256 currentExchangeRate = (token.balanceOf(address(exchange)) * 1e18) / address(exchange).balance;
+        uint256 minAcceptableRate = currentExchangeRate * 95 / 100; // 5% slippage tolerance
+
+        vm.startPrank(user1);
+
+        vm.expectEmit(true, false, false, false);
+        emit Swap(user1, ethToSwap, 10, true);
+        exchange.swapETHForTokens{value: ethToSwap}(minAcceptableRate);
+
         vm.stopPrank();
     }
 }
