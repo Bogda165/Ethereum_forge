@@ -24,6 +24,10 @@ contract SimpleFuture is Ownable {
         bool executed;
     }
 
+    function getAllContracts() public view returns (Future[] memory) {
+        return contracts;
+    }
+
     Future[] public contracts;
 
     uint256 public feeNumerator = 20;

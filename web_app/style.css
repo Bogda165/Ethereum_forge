@@ -287,6 +287,131 @@ footer {
     padding: 0 20px;
 }
 
+/* Futures Contracts Styles */
+#futures-control {
+    background-color: rgba(231, 76, 60, 0.1);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.futures-control-title {
+    color: var(--accent-color);
+    font-size: 1.5rem;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+#futures-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab-button {
+    background-color: #f1f1f1;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 20px;
+    transition: 0.3s;
+    font-size: 16px;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    margin-right: 5px;
+    color: var(--text-color);
+}
+
+.tab-button:hover {
+    background-color: #ddd;
+    transform: none;
+}
+
+.tab-button.active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.tab-content {
+    display: none;
+    padding: 20px 0;
+    border-top: none;
+}
+
+#futures-list {
+    margin-top: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.future-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid var(--accent-color);
+}
+
+.future-card h3 {
+    margin-top: 0;
+    color: var(--accent-color);
+    font-size: 1.2rem;
+}
+
+.future-card p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+
+.future-card .future-actions {
+    margin-top: 15px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.future-card .execute-btn {
+    background-color: var(--accent-color);
+    color: white;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.future-card .execute-btn:hover {
+    background-color: #c0392b;
+}
+
+.future-card .future-status {
+    font-weight: bold;
+}
+
+.future-card .future-status.active {
+    color: var(--secondary-color);
+}
+
+.future-card .future-status.executed {
+    color: #888;
+}
+
+.future-card .future-status.expired {
+    color: var(--accent-color);
+}
+
+#create-buy-future-btn, #create-sell-future-btn {
+    background-color: var(--accent-color);
+    width: 100%;
+}
+
+#create-buy-future-btn:hover, #create-sell-future-btn:hover {
+    background-color: #c0392b;
+}
+
+#refresh-futures {
+    background-color: var(--primary-color);
+    width: 100%;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .panel {
@@ -294,16 +419,25 @@ footer {
         width: auto;
         margin-bottom: 20px;
     }
-    
+
     #main {
         margin-top: 20px;
     }
-    
+
     #swap-control-buttons, #liquidity-control-buttons {
         flex-direction: column;
     }
-    
+
     button {
         width: 100%;
+    }
+
+    #futures-tabs {
+        flex-direction: column;
+    }
+
+    .tab-button {
+        margin-bottom: 5px;
+        border-radius: var(--border-radius);
     }
 }

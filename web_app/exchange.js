@@ -10,12 +10,14 @@ const exchange_name = 'BBC';
 const token_symbol = 'BBC wei';
 
 
-const token_address = '0x982830D87C95479dB81Fe62cd08dd9118D080697';
-const exchange_address = '0x37cA242a94945CdC3d3F155452a82Af6374bebD7';
+const token_address = '0x36C77CC277e73CCcd199d1989828739722Fe5450';
+const exchange_address = '0xd829fcDDD9C9c7c50B7cB476596Ef0ff5889D543';
+const simple_future_address = '0xc74f87d141ED8A41c32ec3d6947485b6f4c11e49';
 
 
 let token_contract;
 let exchange_contract;
+let simple_future_contract;
 
 
 /*** INIT ***/
@@ -623,8 +625,14 @@ async function initializeApp() {
         console.log("Exchange ABI loaded, first few entries:", exchange_abi);
 
 
+        const simpleFutureResponse = await fetch('../abis/simple_future_abi.json');
+        const simple_future_abi = await simpleFutureResponse.json();
+        console.log("SimpleFuture ABI loaded");
+
+
         token_contract = new ethers.Contract(token_address, token_abi, provider);
         exchange_contract = new ethers.Contract(exchange_address, exchange_abi, provider);
+        simple_future_contract = new ethers.Contract(simple_future_address, simple_future_abi, provider);
 
 
         console.log("Token contract has balanceOf:", typeof token_contract.balanceOf === 'function');
@@ -672,6 +680,68 @@ $(document).ready(function () {
     $("#swap-eth").html("Swap ETH for " + token_symbol);
     $("#swap-token").html("Swap " + token_symbol + " for ETH");
     $("#title").html(exchange_name);
+
+
+    document.getElementById("create-buy-future").style.display = "block";
+
+
+    $("#create-buy-future-btn").click(function() {
+        defaultAccount = $("#myaccount").val();
+        const exchangeRate = $("#buy-future-exchange-rate").val();
+        const amount = $("#buy-future-amount").val();
+        const durationDays = $("#buy-future-duration").val();
+
+        if (!exchangeRate || !amount || !durationDays) {
+            alert("Please fill in all fields");
+            return;
+        }
+
+        createBuyFuture(exchangeRate, amount, durationDays).then(response => {
+            alert("Buy future created successfully!");
+
+            $("#buy-future-exchange-rate").val("");
+            $("#buy-future-amount").val("");
+            $("#buy-future-duration").val("");
+        }).catch(error => {
+            console.error("Error creating buy future:", error);
+            alert(`Error creating buy future: ${error.message}`);
+        });
+    });
+
+    $("#create-sell-future-btn").click(function() {
+        defaultAccount = $("#myaccount").val();
+        const tokenAmount = $("#sell-future-amount").val();
+        const exchangeRate = $("#sell-future-exchange-rate").val();
+        const durationDays = $("#sell-future-duration").val();
+
+        if (!tokenAmount || !exchangeRate || !durationDays) {
+            alert("Please fill in all fields");
+            return;
+        }
+
+        createSellFuture(tokenAmount, exchangeRate, durationDays).then(response => {
+            alert("Sell future created successfully!");
+
+            $("#sell-future-amount").val("");
+            $("#sell-future-exchange-rate").val("");
+            $("#sell-future-duration").val("");
+        }).catch(error => {
+            console.error("Error creating sell future:", error);
+            alert(`Error creating sell future: ${error.message}`);
+        });
+    });
+
+    $("#refresh-futures").click(function() {
+        defaultAccount = $("#myaccount").val();
+        displayFutures().catch(error => {
+            console.error("Error refreshing futures:", error);
+            alert(`Error refreshing futures: ${error.message}`);
+        });
+    });
+
+
+    window.openTab = openTab;
+    window.executeFutureFromUI = executeFutureFromUI;
 });
 
 
@@ -732,9 +802,9 @@ function log(description, obj) {
 }
 
 
-// =============================================================================
-//                                SANITY CHECK
-// =============================================================================
+
+
+
 function check(name, swap_rate, condition) {
     if (condition) {
         console.log(name + ": SUCCESS");
@@ -756,7 +826,7 @@ const sanityCheck = async function() {
     var start_state = await getPoolState();
     var start_tokens = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
 
-    // No liquidity provider rewards implemented yet
+
     if (Number(swap_fee[0]) == 0) {
         await swapETHForTokens(100, 1);
         var state1 = await getPoolState();
@@ -804,7 +874,7 @@ const sanityCheck = async function() {
             Math.abs(Number(user_tokens5) - (Number(user_tokens4) + expected_tokens_removed)) < 5);
     }
 
-    // LP provider rewards implemented
+
     else {
         var swap_fee = swap_fee[0] / swap_fee[1];
         console.log("swap fee: ", swap_fee);
@@ -837,7 +907,7 @@ const sanityCheck = async function() {
             Math.abs(Number(user_tokens3) - (Number(user_tokens2) - expected_tokens_added)) < 5);
 
 
-        // accumulate some lp rewards
+
         for (var i = 0; i < 20; i++) {
             await swapETHForTokens(100, 1);
             await swapTokensForETH(100, 1);
@@ -846,7 +916,7 @@ const sanityCheck = async function() {
         var state4 = await getPoolState();
         var user_tokens4 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
         await removeLiquidity(10, 1);
-        // set to 22 for a bit of leeway, could potentially reduce to 20
+
         var expected_tokens_removed = (10 + 22 * 100 * swap_fee) * state3.token_eth_rate;
         var state5 = await getPoolState();
         var user_tokens5 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
@@ -868,9 +938,264 @@ const sanityCheck = async function() {
 
 }
 
-// Sleep 3s to ensure init() finishes before sanityCheck() runs on first load.
-// If you run into sanityCheck() errors due to init() not finishing, please extend the sleep time.
 
-// setTimeout(function () {
-//   sanityCheck();
-// }, 3000);
+
+
+
+
+
+
+/*** SIMPLE FUTURE FUNCTIONS ***/
+
+
+async function createBuyFuture(exchangeRate, amount, durationDays) {
+    try {
+        console.log(`Creating buy future with exchange rate ${exchangeRate}, amount ${amount} wei, and duration ${durationDays} days`);
+
+        const signer = provider.getSigner(defaultAccount);
+        const simpleFutureWithSigner = simple_future_contract.connect(signer);
+
+        const tx = await simpleFutureWithSigner.createBuyFuture(
+            exchangeRate,
+            durationDays,
+            {
+                value: amount,
+                gasLimit: 300000
+            }
+        );
+
+        console.log("Transaction submitted, hash:", tx.hash);
+        console.log("Waiting for confirmation...");
+
+        const receipt = await tx.wait();
+        console.log("Buy future created successfully in block:", receipt.blockNumber);
+        return receipt;
+    } catch (error) {
+        console.error("Error creating buy future:", error);
+        throw error;
+    }
+}
+
+
+async function createSellFuture(tokenAmount, exchangeRate, durationDays) {
+    try {
+        console.log(`Creating sell future with token amount ${tokenAmount}, exchange rate ${exchangeRate}, and duration ${durationDays} days`);
+
+        const signer = provider.getSigner(defaultAccount);
+        const tokenWithSigner = token_contract.connect(signer);
+        const simpleFutureWithSigner = simple_future_contract.connect(signer);
+
+
+        const userTokenBalance = await tokenWithSigner.balanceOf(defaultAccount);
+        console.log("User token balance:", userTokenBalance.toString());
+
+        if (userTokenBalance.lt(tokenAmount)) {
+            throw new Error(`Insufficient token balance. You have ${userTokenBalance.toString()} but need ${tokenAmount}`);
+        }
+
+
+        const allowance = await tokenWithSigner.allowance(defaultAccount, simple_future_address);
+        console.log("Current allowance:", allowance.toString());
+
+        if (allowance.lt(tokenAmount)) {
+            console.log("Approving tokens for the SimpleFuture contract...");
+            const approveTx = await tokenWithSigner.approve(simple_future_address, tokenAmount);
+            console.log("Approval transaction submitted:", approveTx.hash);
+
+            const approveReceipt = await approveTx.wait();
+            console.log("Approval confirmed in block:", approveReceipt.blockNumber);
+        } else {
+            console.log("Tokens already approved");
+        }
+
+
+        const tx = await simpleFutureWithSigner.createSellFuture(
+            tokenAmount,
+            exchangeRate,
+            durationDays,
+            {
+                gasLimit: 300000
+            }
+        );
+
+        console.log("Transaction submitted, hash:", tx.hash);
+        console.log("Waiting for confirmation...");
+
+        const receipt = await tx.wait();
+        console.log("Sell future created successfully in block:", receipt.blockNumber);
+        return receipt;
+    } catch (error) {
+        console.error("Error creating sell future:", error);
+        throw error;
+    }
+}
+
+
+async function executeFuture(contractId) {
+    try {
+        console.log(`Executing future with contract ID ${contractId}`);
+
+        const signer = provider.getSigner(defaultAccount);
+        const simpleFutureWithSigner = simple_future_contract.connect(signer);
+
+
+        const future = await simpleFutureWithSigner.contracts(contractId);
+        console.log("Future details:", future);
+
+        if (future.executed) {
+            throw new Error("Future already executed");
+        }
+
+
+        const tx = await simpleFutureWithSigner.executeFuture(
+            contractId,
+            {
+                gasLimit: 500000
+            }
+        );
+
+        console.log("Transaction submitted, hash:", tx.hash);
+        console.log("Waiting for confirmation...");
+
+        const receipt = await tx.wait();
+        console.log("Future executed successfully in block:", receipt.blockNumber);
+        return receipt;
+    } catch (error) {
+        console.error("Error executing future:", error);
+        throw error;
+    }
+}
+
+
+async function getAllFutures() {
+    try {
+        console.log("Getting all futures");
+
+        const signer = provider.getSigner(defaultAccount);
+        const simpleFutureWithSigner = simple_future_contract.connect(signer);
+
+
+
+        let futures = [];
+        let i = 0;
+
+        while (true) {
+            try {
+                const future = await simpleFutureWithSigner.contracts(i);
+
+
+                const formattedFuture = {
+                    id: i,
+                    buyer: future.buyer,
+                    amount: future.amount.toString(),
+                    exchangeRate: future.exchangeRage.toString(),
+                    isBuyOrder: future.isBuyOrder,
+                    expireDate: new Date(future.expireDate.toNumber() * 1000).toLocaleString(),
+                    executed: future.executed,
+                    isExpired: future.expireDate.toNumber() < Math.floor(Date.now() / 1000)
+                };
+
+                futures.push(formattedFuture);
+                i++;
+            } catch (error) {
+
+                break;
+            }
+        }
+
+        console.log("Found", futures.length, "futures");
+        return futures;
+    } catch (error) {
+        console.error("Error getting futures:", error);
+        throw error;
+    }
+}
+
+
+async function displayFutures() {
+    try {
+        const futures = await getAllFutures();
+        const futuresList = document.getElementById("futures-list");
+
+        if (futures.length === 0) {
+            futuresList.innerHTML = "<p>No futures contracts found.</p>";
+            return;
+        }
+
+        let html = "";
+
+        for (const future of futures) {
+            let statusClass = "active";
+            let statusText = "Active";
+
+            if (future.executed) {
+                statusClass = "executed";
+                statusText = "Executed";
+            } else if (future.isExpired) {
+                statusClass = "expired";
+                statusText = "Expired";
+            }
+
+            html += `
+                <div class="future-card">
+                    <h3>${future.isBuyOrder ? "Buy" : "Sell"} Future #${future.id}</h3>
+                    <p><strong>Buyer:</strong> ${future.buyer}</p>
+                    <p><strong>Amount:</strong> ${future.amount} ${future.isBuyOrder ? "wei" : "tokens"}</p>
+                    <p><strong>Exchange Rate:</strong> ${future.exchangeRate}</p>
+                    <p><strong>Expires:</strong> ${future.expireDate}</p>
+                    <p><strong>Status:</strong> <span class="future-status ${statusClass}">${statusText}</span></p>
+                    ${!future.executed ? `
+                        <div class="future-actions">
+                            <button class="execute-btn" onclick="executeFutureFromUI(${future.id})">Execute</button>
+                        </div>
+                    ` : ""}
+                </div>
+            `;
+        }
+
+        futuresList.innerHTML = html;
+    } catch (error) {
+        console.error("Error displaying futures:", error);
+        document.getElementById("futures-list").innerHTML = `<p>Error loading futures: ${error.message}</p>`;
+    }
+}
+
+
+async function executeFutureFromUI(contractId) {
+    try {
+        defaultAccount = $("#myaccount").val();
+        await executeFuture(contractId);
+        await displayFutures();
+    } catch (error) {
+        console.error("Error executing future from UI:", error);
+        alert(`Error executing future: ${error.message}`);
+    }
+}
+
+
+function openTab(evt, tabName) {
+
+    const tabContent = document.getElementsByClassName("tab-content");
+    for (let i = 0; i < tabContent.length; i++) {
+        tabContent[i].style.display = "none";
+    }
+
+
+    const tabButtons = document.getElementsByClassName("tab-button");
+    for (let i = 0; i < tabButtons.length; i++) {
+        tabButtons[i].className = tabButtons[i].className.replace(" active", "");
+    }
+
+
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+
+
+    if (tabName === "view-futures") {
+        defaultAccount = $("#myaccount").val();
+        displayFutures().catch(error => {
+            console.error("Error loading futures:", error);
+            document.getElementById("futures-list").innerHTML = `<p>Error loading futures: ${error.message}</p>`;
+        });
+    }
+}
