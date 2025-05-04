@@ -11,8 +11,8 @@ const token_name = 'Bib Black TOKEN';
 const token_symbol = 'BBC wei';
 
 // Contract addresses
-const token_address = '0xc74f87d141ED8A41c32ec3d6947485b6f4c11e49';
-const exchange_address = '0x9eBb49B2004C753f6Fb8b3181C224a8972f70528';
+const token_address = '0xef11D1c2aA48826D4c41e54ab82D1Ff5Ad8A64Ca';
+const exchange_address = '0x39dD11C243Ac4Ac250980FA3AEa016f73C509f37';
 
 // Contract variables to be initialized after loading ABIs
 let token_contract;
