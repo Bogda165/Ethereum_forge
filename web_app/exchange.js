@@ -2,37 +2,31 @@ import {ethers} from 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.
 
 console.log('Ethers version:', ethers.version);
 
-// Set up Ethers.js
+
 const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
 var defaultAccount = "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955";
 
 const exchange_name = 'BBC';
-const token_name = 'Bib Black TOKEN';
 const token_symbol = 'BBC wei';
 
-// Contract addresses
-const token_address = '0xef11D1c2aA48826D4c41e54ab82D1Ff5Ad8A64Ca';
-const exchange_address = '0x39dD11C243Ac4Ac250980FA3AEa016f73C509f37';
 
-// Contract variables to be initialized after loading ABIs
+const token_address = '0x982830D87C95479dB81Fe62cd08dd9118D080697';
+const exchange_address = '0x37cA242a94945CdC3d3F155452a82Af6374bebD7';
+
+
 let token_contract;
 let exchange_contract;
-let abisLoaded = false;
 
-
-// =============================================================================
-//                              Provided Functions
-// =============================================================================
 
 /*** INIT ***/
 async function initializePool(tokensInThePool, ethInThePool) {
     try {
         console.log("Initializing pool with", tokensInThePool, "tokens and", ethInThePool, "wei");
 
-        // Get signer for the default account
+
         const signer = provider.getSigner(defaultAccount);
 
-        // Connect signer to contracts to send transactions
+
         const tokenWithSigner = token_contract.connect(signer);
         const exchangeWithSigner = exchange_contract.connect(signer);
 
@@ -47,7 +41,7 @@ async function initializePool(tokensInThePool, ethInThePool) {
         console.log("Approval successful, tx hash:", approveTx.hash);
 
         console.log("Creating pool...");
-        // Just use the ethInThePool directly as wei value (don't use parseEther)
+
         const createPoolTx = await exchangeWithSigner.createPool(
             tokensInThePool,
             {
@@ -70,9 +64,9 @@ async function init() {
     var poolState = await getPoolState();
 
     if (poolState['token_liquidity'] === 0 && poolState['eth_liquidity'] === 0) {
-        // Mint and create pool - using wei values directly
+
         const tokensInThePool = 5000;
-        const ethInThePool = 5000; // This is now 5000 wei, not ETH
+        const ethInThePool = 5000;
 
         const balance = await provider.getBalance(defaultAccount);
         console.log("Account balance:", ethers.utils.formatEther(balance), "ETH");
@@ -97,7 +91,7 @@ async function getPoolState() {
     console.log("Getting pool state...");
 
     try {
-        // read pool balance for each type of liquidity:
+
         let liquidity_tokens = await exchange_contract.tokenReserves();
         let liquidity_eth = await exchange_contract.ethReserves();
 
@@ -112,7 +106,7 @@ async function getPoolState() {
         };
     } catch (error) {
         console.error("Error getting pool state:", error);
-        // Return default values on error
+
         return {
             token_liquidity: 0,
             eth_liquidity: 0,
@@ -127,7 +121,7 @@ async function listenToContractEvents(contractAddress) {
         console.log(`Listening for events on contract: ${exchange_address}`);
 
 
-        // Listen to all events from this contract
+
         exchange_contract.on('*', (event) => {
             console.log('\n--------------------------------------------');
             console.log('📣 New Event Detected:');
@@ -139,14 +133,14 @@ async function listenToContractEvents(contractAddress) {
             console.log('--------------------------------------------\n');
         });
 
-        // Also listen for new blocks to monitor transactions
+
         provider.on('block', async (blockNumber) => {
             const block = await provider.getBlock(blockNumber, true);
 
             if (block && block.transactions && block.transactions.length > 0) {
                 console.log(`\n🧱 Block #${blockNumber} with ${block.transactions.length} transactions`);
 
-                // Check for transactions involving our contract
+
                 for (const tx of block.transactions) {
                     if (tx.to && tx.to.toLowerCase() === contractAddress.toLowerCase()) {
                         const receipt = await provider.getTransactionReceipt(tx.hash);
@@ -166,12 +160,12 @@ async function listenToContractEvents(contractAddress) {
     }
 }
 
-// ============================================================
-//                    FUNCTIONS TO IMPLEMENT
-// ============================================================
 
-// Note: maxSlippagePct will be passed in as an int out of 100.
-// Be sure to divide by 100 for your calculations.
+
+
+
+
+
 
 /*** ADD LIQUIDITY ***/
 async function addLiquidity(amountEth, maxSlippagePct) {
@@ -180,7 +174,7 @@ async function addLiquidity(amountEth, maxSlippagePct) {
 
         const poolState = await getPoolState();
 
-        // Get token and ETH reserves directly in wei
+
         const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
         const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
 
@@ -215,12 +209,12 @@ async function addLiquidity(amountEth, maxSlippagePct) {
         console.log("Min exchange rate:", minExchangeRate.toString());
         console.log("Max exchange rate:", maxExchangeRate.toString());
 
-        // Connect to contracts
+
         const signer = provider.getSigner(defaultAccount);
         const tokenWithSigner = token_contract.connect(signer);
         const exchangeWithSigner = exchange_contract.connect(signer);
 
-        // Check token balance and allowance
+
         const userTokenBalance = await tokenWithSigner.balanceOf(defaultAccount);
         console.log("User token balance:", userTokenBalance.toString());
 
@@ -231,7 +225,7 @@ async function addLiquidity(amountEth, maxSlippagePct) {
         const allowance = await tokenWithSigner.allowance(defaultAccount, exchange_address);
         console.log("Current allowance:", allowance.toString());
 
-        // Approve tokens if needed
+
         if (allowance.lt(expectedTokenAmount)) {
             console.log("Approving tokens for liquidity addition...");
             const approveTx = await tokenWithSigner.approve(exchange_address, expectedTokenAmount);
@@ -243,7 +237,7 @@ async function addLiquidity(amountEth, maxSlippagePct) {
             console.log("Tokens already approved");
         }
 
-        // Call addLiquidity with max and min exchange rates for slippage protection
+
         console.log(`Adding liquidity with parameters:
             - Max exchange rate: ${maxExchangeRate.toString()}
             - Min exchange rate: ${minExchangeRate.toString()}
@@ -278,7 +272,7 @@ async function removeLiquidity(amountEth, maxSlippagePct) {
 
         const poolState = await getPoolState();
 
-        // Get token and ETH reserves
+
         const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
         const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
 
@@ -313,7 +307,7 @@ async function removeLiquidity(amountEth, maxSlippagePct) {
         console.log("Min exchange rate:", minExchangeRate.toString());
         console.log("Max exchange rate:", maxExchangeRate.toString());
 
-        // Connect to contracts
+
         const signer = provider.getSigner(defaultAccount);
         const exchangeWithSigner = exchange_contract.connect(signer);
 
@@ -354,7 +348,67 @@ async function removeLiquidity(amountEth, maxSlippagePct) {
 }
 
 async function removeAllLiquidity(maxSlippagePct) {
-    /** TODO: ADD YOUR CODE HERE **/
+    try {
+        console.log(`Removing all liquidity with max slippage ${maxSlippagePct}%`);
+
+        const poolState = await getPoolState();
+
+
+        const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
+        const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
+
+        console.log("Current pool state - Token reserves:", tokenReserves.toString(),
+            "ETH reserves:", ethReserves.toString());
+
+
+        const signer = provider.getSigner(defaultAccount);
+        const exchangeWithSigner = exchange_contract.connect(signer);
+
+
+        const lpTokenBalance = await exchangeWithSigner.getLPT(defaultAccount);
+        console.log("LP token balance:", lpTokenBalance.toString());
+
+        if (lpTokenBalance.isZero()) {
+            throw new Error("You don't have any liquidity to remove");
+        }
+
+
+        const exchangeRateWeiPerToken = ethReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(tokenReserves);
+        console.log("Base exchange rate (wei per token):", exchangeRateWeiPerToken.toString());
+
+        const maxExchangeRate = exchangeRateWeiPerToken.mul(ethers.BigNumber.from(100 + parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
+        console.log("Max acceptable rate with slippage:", maxExchangeRate.toString());
+
+        const exchangeRateTokenPerWei = tokenReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(ethReserves);
+        console.log("Base exchange rate (token per wei):", exchangeRateTokenPerWei.toString());
+
+        const minExchangeRate = exchangeRateTokenPerWei.mul(ethers.BigNumber.from(100 - parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
+        console.log("Min acceptable rate with slippage:", minExchangeRate.toString());
+
+        console.log(`Removing all liquidity with parameters:
+        - Max exchange rate: ${maxExchangeRate.toString()}
+        - Min exchange rate: ${minExchangeRate.toString()}`);
+
+
+        const tx = await exchangeWithSigner.removeAllLiquidity(
+            maxExchangeRate,
+            minExchangeRate,
+            {
+                gasLimit: 300000
+            }
+        );
+
+        console.log("Transaction submitted, hash:", tx.hash);
+        console.log("Waiting for confirmation...");
+
+        const receipt = await tx.wait();
+        console.log("All liquidity removed successfully in block:", receipt.blockNumber);
+        return receipt;
+
+    } catch (error) {
+        console.error("Error removing all liquidity:", error);
+        throw error;
+    }
 }
 
 /*** SWAP ***/
@@ -369,11 +423,11 @@ async function swapTokensForETH(amountToken, maxSlippagePct) {
 
         console.log("Pool state - Token reserves:", tokenReserves.toString(), "ETH reserves:", ethReserves.toString());
 
-        // Convert input from string to BigNumber
+
         const tokenAmount = ethers.BigNumber.from(amountToken);
         console.log("Token amount to swap:", tokenAmount.toString());
 
-        // Check if the user has enough tokens
+
         const signer = provider.getSigner(defaultAccount);
         const tokenWithSigner = token_contract.connect(signer);
         const exchangeWithSigner = exchange_contract.connect(signer);
@@ -385,20 +439,20 @@ async function swapTokensForETH(amountToken, maxSlippagePct) {
             throw new Error(`Insufficient token balance. You have ${userTokenBalance.toString()} but trying to swap ${tokenAmount.toString()}`);
         }
 
-        // Calculate rate with slippage
+
         const baseRate = ethReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(tokenReserves);
         console.log("Base exchange rate (wei per token):", baseRate.toString());
 
-        // For token->ETH swap, slippage increases the max rate (reduces minimum ETH output)
+
         const maxAcceptableRate = baseRate.mul(ethers.BigNumber.from(100 + parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
         console.log("Max acceptable rate with slippage:", maxAcceptableRate.toString());
 
         try {
-            // First check allowance
+
             const allowance = await tokenWithSigner.allowance(defaultAccount, exchange_address);
             console.log("Current allowance for exchange:", allowance.toString());
 
-            // Approve if needed - this should happen in a separate transaction
+
             if (allowance.lt(tokenAmount)) {
                 console.log("Approving tokens for spending...");
                 const approveTx = await tokenWithSigner.approve(exchange_address, tokenAmount);
@@ -413,7 +467,7 @@ async function swapTokensForETH(amountToken, maxSlippagePct) {
                 console.log("Already approved enough tokens");
             }
 
-            // Double check allowance after approval
+
             const newAllowance = await tokenWithSigner.allowance(defaultAccount, exchange_address);
             console.log("Updated allowance:", newAllowance.toString());
 
@@ -421,30 +475,30 @@ async function swapTokensForETH(amountToken, maxSlippagePct) {
                 throw new Error("Approval didn't increase allowance enough");
             }
 
-            // Now perform the actual swap - first check parameters
+
             console.log(`Calling swapTokensForETH with:
                 - tokenAmount: ${tokenAmount.toString()}
                 - maxRate: ${maxAcceptableRate.toString()}`);
 
-            // Check contract function signature
+
             console.log("Available functions on exchange contract:",
                 Object.keys(exchangeWithSigner.functions)
                     .filter(f => f.startsWith('swap'))
                     .join(', '));
 
-            // Try to estimate gas first to validate the call would succeed
+
             const gasEstimate = await exchangeWithSigner.estimateGas.swapTokensForETH(
                 tokenAmount,
                 maxAcceptableRate
             );
             console.log("Gas estimate for swap:", gasEstimate.toString());
 
-            // Execute the swap
+
             const tx = await exchangeWithSigner.swapTokensForETH(
                 tokenAmount,
                 maxAcceptableRate,
                 {
-                    gasLimit: gasEstimate.mul(12).div(10) // Add 20% buffer
+                    gasLimit: gasEstimate.mul(12).div(10)
                 }
             );
 
@@ -461,7 +515,7 @@ async function swapTokensForETH(amountToken, maxSlippagePct) {
         } catch (error) {
             console.error("Transaction execution failed:", error);
 
-            // Try to get more details about the error
+
             if (error.data) {
                 console.error("Error data:", error.data);
             }
@@ -488,13 +542,13 @@ async function swapETHForTokens(amountWei, maxSlippagePct) {
 
         const poolState = await getPoolState();
 
-        // Get token and ETH reserves directly in wei
+
         const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
         const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
 
         console.log("Pool state - Token reserves:", tokenReserves.toString(), "ETH reserves:", ethReserves.toString());
 
-        // Convert input from string to BigNumber
+
         const weiAmount = ethers.BigNumber.from(amountWei);
 
         let expectedRate;
@@ -507,7 +561,7 @@ async function swapETHForTokens(amountWei, maxSlippagePct) {
         console.log("Current expected rate:", expectedRate.toString());
         let minExpectedRate = expectedRate.mul(ethers.BigNumber.from(100 - maxSlippagePct)).div(ethers.BigNumber.from(100));
 
-        // Connect to the exchange contract with signer
+
         const signer = provider.getSigner(defaultAccount);
         const exchangeWithSigner = exchange_contract.connect(signer);
 
@@ -540,11 +594,11 @@ async function swapETHForTokens(amountWei, maxSlippagePct) {
     }
 }
 
-// =============================================================================
-//                                      UI
-// =============================================================================
 
-// Initialize everything
+
+
+
+
 async function initializeApp() {
     try {
         console.log("Starting application initialization...");
@@ -555,24 +609,24 @@ async function initializeApp() {
             return;
         }
 
-        // Load ABIs and initialize contracts
+
         console.log("Loading ABIs and initializing contracts...");
 
-        // Load token ABI
+
         const tokenResponse = await fetch('../abis/token_abi.json');
         const token_abi = await tokenResponse.json();
         console.log("Token ABI loaded, first few entries:", token_abi.slice(0, 2));
 
-        // Load exchange ABI
-        const exchangeResponse = await fetch('../abis/exchange_abi.json');  // Make sure path is correct
+
+        const exchangeResponse = await fetch('../abis/exchange_abi.json');
         const exchange_abi = await exchangeResponse.json();
         console.log("Exchange ABI loaded, first few entries:", exchange_abi);
 
-        // Create contract instances directly
+
         token_contract = new ethers.Contract(token_address, token_abi, provider);
         exchange_contract = new ethers.Contract(exchange_address, exchange_abi, provider);
 
-        // Verify contracts have expected functions
+
         console.log("Token contract has balanceOf:", typeof token_contract.balanceOf === 'function');
         console.log("Exchange contract has createPool:", typeof exchange_contract.createPool === 'function');
 
@@ -580,21 +634,21 @@ async function initializeApp() {
 
         await init();
 
-        // Initialize the exchange (with a higher gas limit)
+
         console.log("Checking pool state...");
         const poolState = await getPoolState();
         console.log("Pool state:", poolState);
 
-        // Rest of your initialization code
-        // ...
 
-        // Update UI
+
+
+
         $("#eth-token-rate-display").html("1 ETH = " + poolState['token_eth_rate'] + " " + token_symbol);
         $("#token-eth-rate-display").html("1 " + token_symbol + " = " + poolState['eth_token_rate'] + " ETH");
         $("#token-reserves").html(poolState['token_liquidity'] + " " + token_symbol);
         $("#eth-reserves").html(poolState['eth_liquidity'] + " ETH");
 
-        // Setup account dropdown
+
         var opts = accounts.map(function (a) {
             return '<option value="' + a.toLowerCase() + '">' + a.toLowerCase() + '</option>'
         });
@@ -609,38 +663,38 @@ async function initializeApp() {
     }
 }
 
-// Start the application
+
 $(document).ready(function () {
     console.log("Document ready, initializing application...");
     initializeApp();
 
-    // Set button text to include token symbol
+
     $("#swap-eth").html("Swap ETH for " + token_symbol);
     $("#swap-token").html("Swap " + token_symbol + " for ETH");
     $("#title").html(exchange_name);
 });
 
-// This runs the 'swapETHForTokens' function when you click the button
+
 $("#swap-eth").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     swapETHForTokens($("#amt-to-swap").val(), $("#max-slippage-swap").val()).then(response => {
-        // window.location.reload(true); // refreshes the page after transaction completes
+
     }).catch(error => {
         console.error("Error swapping ETH for tokens:", error);
     });
 });
 
-// This runs the 'swapTokensForETH' function when you click the button
+
 $("#swap-token").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     swapTokensForETH($("#amt-to-swap").val(), $("#max-slippage-swap").val()).then(response => {
-        // window.location.reload(true);
+
     }).catch(error => {
         console.error("Error swapping tokens for ETH:", error);
     });
 });
 
-// This runs the 'addLiquidity' function when you click the button
+
 $("#add-liquidity").click(function () {
     console.log("Account: ", $("#myaccount").val());
     defaultAccount = $("#myaccount").val(); //sets the default account
@@ -651,7 +705,7 @@ $("#add-liquidity").click(function () {
     });
 });
 
-// This runs the 'removeLiquidity' function when you click the button
+
 $("#remove-liquidity").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     removeLiquidity($("#amt-eth").val(), $("#max-slippage-liquid").val()).then(response => {
@@ -661,7 +715,7 @@ $("#remove-liquidity").click(function () {
     });
 });
 
-// This runs the 'removeAllLiquidity' function when you click the button
+
 $("#remove-all-liquidity").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     removeAllLiquidity($("#max-slippage-liquid").val()).then(response => {
@@ -671,8 +725,152 @@ $("#remove-all-liquidity").click(function () {
     });
 });
 
-// This is a log function, provided if you want to display things to the page instead of the JavaScript console
-// Pass in a description of what you're printing, and then the object to print
+
+
 function log(description, obj) {
     $("#log").html($("#log").html() + description + ": " + JSON.stringify(obj, null, 2) + "\n\n");
 }
+
+
+// =============================================================================
+//                                SANITY CHECK
+// =============================================================================
+function check(name, swap_rate, condition) {
+    if (condition) {
+        console.log(name + ": SUCCESS");
+        return (swap_rate == 0 ? 6 : 10);
+    } else {
+        console.log(name + ": FAILED");
+        return 0;
+    }
+}
+
+
+const sanityCheck = async function() {
+    var swap_fee = await exchange_contract.connect(provider.getSigner(defaultAccount)).getSwapFee();
+    console.log("Beginning Sanity Check.");
+
+    var accounts = await provider.listAccounts();
+    defaultAccount = accounts[0];
+    var score = 0;
+    var start_state = await getPoolState();
+    var start_tokens = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+
+    // No liquidity provider rewards implemented yet
+    if (Number(swap_fee[0]) == 0) {
+        await swapETHForTokens(100, 1);
+        var state1 = await getPoolState();
+        var expected_tokens_received = 100 * start_state.token_eth_rate;
+        var user_tokens1 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Testing simple exchange of ETH to token", swap_fee[0],
+            Math.abs((start_state.token_liquidity - expected_tokens_received) - state1.token_liquidity) < 5 &&
+            (state1.eth_liquidity - start_state.eth_liquidity) === 100 &&
+            Math.abs(Number(start_tokens) + expected_tokens_received - Number(user_tokens1)) < 5);
+
+        await swapTokensForETH(100, 1);
+        var state2 = await getPoolState();
+        var expected_eth_received = 100 * state1.eth_token_rate;
+        var user_tokens2 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Test simple exchange of token to ETH", swap_fee[0],
+            state2.token_liquidity === (state1.token_liquidity + 100) &&
+            Math.abs((state1.eth_liquidity - expected_eth_received) - state2.eth_liquidity) < 5 &&
+            Number(user_tokens2) === (Number(user_tokens1) - 100));
+
+        await addLiquidity(100, 1);
+        var expected_tokens_added = 100 * state2.token_eth_rate;
+        var state3 = await getPoolState();
+        var user_tokens3 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Test adding liquidity", swap_fee[0],
+            state3.eth_liquidity === (state2.eth_liquidity + 100) &&
+            Math.abs(state3.token_liquidity - (state2.token_liquidity + expected_tokens_added)) < 5 &&
+            Math.abs(Number(user_tokens3) - (Number(user_tokens2) - expected_tokens_added)) < 5);
+
+        await removeLiquidity(10, 1);
+        var expected_tokens_removed = 10 * state3.token_eth_rate;
+        var state4 = await getPoolState();
+        var user_tokens4 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Test removing liquidity", swap_fee[0],
+            state4.eth_liquidity === (state3.eth_liquidity - 10) &&
+            Math.abs(state4.token_liquidity - (state3.token_liquidity - expected_tokens_removed)) < 5 &&
+            Math.abs(Number(user_tokens4) - (Number(user_tokens3) + expected_tokens_removed)) < 5);
+
+        await removeAllLiquidity(1);
+        expected_tokens_removed = 90 * state4.token_eth_rate;
+        var state5 = await getPoolState();
+        var user_tokens5 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Test removing all liquidity", swap_fee[0],
+            state5.eth_liquidity - (state4.eth_liquidity - 90) < 5 &&
+            Math.abs(state5.token_liquidity - (state4.token_liquidity - expected_tokens_removed)) < 5 &&
+            Math.abs(Number(user_tokens5) - (Number(user_tokens4) + expected_tokens_removed)) < 5);
+    }
+
+    // LP provider rewards implemented
+    else {
+        var swap_fee = swap_fee[0] / swap_fee[1];
+        console.log("swap fee: ", swap_fee);
+
+        await swapETHForTokens(100, 1);
+        var state1 = await getPoolState();
+        var expected_tokens_received = 100 * (1 - swap_fee) * start_state.token_eth_rate;
+        var user_tokens1 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Testing simple exchange of ETH to token", swap_fee[0],
+            Math.abs((start_state.token_liquidity - expected_tokens_received) - state1.token_liquidity) < 5 &&
+            (state1.eth_liquidity - start_state.eth_liquidity) === 100 &&
+            Math.abs(Number(start_tokens) + expected_tokens_received - Number(user_tokens1)) < 5);
+
+        await swapTokensForETH(100, 1);
+        var state2 = await getPoolState();
+        var expected_eth_received = 100 * (1 - swap_fee) * state1.eth_token_rate;
+        var user_tokens2 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Test simple exchange of token to ETH", swap_fee[0],
+            state2.token_liquidity === (state1.token_liquidity + 100) &&
+            Math.abs((state1.eth_liquidity - expected_eth_received) - state2.eth_liquidity) < 5 &&
+            Number(user_tokens2) === (Number(user_tokens1) - 100));
+
+        await addLiquidity(100, 1);
+        var expected_tokens_added = 100 * state2.token_eth_rate;
+        var state3 = await getPoolState();
+        var user_tokens3 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Test adding liquidity", swap_fee[0],
+            state3.eth_liquidity === (state2.eth_liquidity + 100) &&
+            Math.abs(state3.token_liquidity - (state2.token_liquidity + expected_tokens_added)) < 5 &&
+            Math.abs(Number(user_tokens3) - (Number(user_tokens2) - expected_tokens_added)) < 5);
+
+
+        // accumulate some lp rewards
+        for (var i = 0; i < 20; i++) {
+            await swapETHForTokens(100, 1);
+            await swapTokensForETH(100, 1);
+        }
+
+        var state4 = await getPoolState();
+        var user_tokens4 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        await removeLiquidity(10, 1);
+        // set to 22 for a bit of leeway, could potentially reduce to 20
+        var expected_tokens_removed = (10 + 22 * 100 * swap_fee) * state3.token_eth_rate;
+        var state5 = await getPoolState();
+        var user_tokens5 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Test removing liquidity", swap_fee[0],
+            state5.eth_liquidity === (state4.eth_liquidity - 10) &&
+            Math.abs(state5.token_liquidity - (state4.token_liquidity - expected_tokens_removed)) < expected_tokens_removed * 1.2 &&
+            Math.abs(Number(user_tokens5) - (Number(user_tokens4) + expected_tokens_removed)) < expected_tokens_removed * 1.2);
+
+        await removeAllLiquidity(1);
+        expected_tokens_removed = (90 +  22 * 100 * swap_fee) * state5.token_eth_rate;
+        var state6 = await getPoolState();
+        var user_tokens6 = await token_contract.connect(provider.getSigner(defaultAccount)).balanceOf(defaultAccount);
+        score += check("Test removing all liquidity", swap_fee[0],
+            Math.abs(state6.eth_liquidity - (state5.eth_liquidity - 90)) < 5 &&
+            Math.abs(state6.token_liquidity - (state5.token_liquidity - expected_tokens_removed)) < expected_tokens_removed * 1.2 &&
+            Number(user_tokens6) > Number(user_tokens5));
+    }
+    console.log("Final score: " + score + "/50");
+
+}
+
+// Sleep 3s to ensure init() finishes before sanityCheck() runs on first load.
+// If you run into sanityCheck() errors due to init() not finishing, please extend the sleep time.
+
+// setTimeout(function () {
+//   sanityCheck();
+// }, 3000);

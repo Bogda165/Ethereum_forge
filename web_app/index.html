@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StanDex Exchange</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="./style.css">
     <script src="./abi-decoder.js"></script>
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
@@ -15,40 +18,75 @@
         </div>
       </header>
     </div>
+
     <div class="panel panel_right">
       <h2>My Account</h2>
       <select id="myaccount" class="account"></select>
+      <p class="account-info">Select your account to interact with the exchange</p>
     </div>
+
     <div id="main">
       <div id="main-display">
         <article>
-          <div id="rate-display">
-            <h1 id="current-rate-title"> Current rate: </h1>
-            <h3 id="eth-token-rate-display"></h3>
-            <h3 id="token-eth-rate-display"></h3>
+          <div class="dashboard-header">
+            <h2>Exchange Dashboard</h2>
+            <p>Trade tokens and manage liquidity in the pool</p>
           </div>
-          <div id="liquidity-display">
-            <h1 id="current-liquidity-title">Current Liquidity:</h1>
-            <h3 id="eth-reserves"></h3>
-            <h3 id="token-reserves"></h3>
+
+          <div class="dashboard-section">
+            <div id="rate-display">
+              <h1 id="current-rate-title">Current Exchange Rate</h1>
+              <div class="rate-info">
+                <h3 id="eth-token-rate-display"></h3>
+                <h3 id="token-eth-rate-display"></h3>
+              </div>
+            </div>
+
+            <div id="liquidity-display">
+              <h1 id="current-liquidity-title">Current Liquidity</h1>
+              <div class="liquidity-info">
+                <h3 id="eth-reserves"></h3>
+                <h3 id="token-reserves"></h3>
+              </div>
+            </div>
           </div>
+
           <div id="swap-control">
-            <h4 class="swap-control-title"> Swap Currencies: </h4>
-            <label for="amt-to-swap">Amount:</label>
-            <input id="amt-to-swap" type="text"/>
-            <label for="max-slippage-swap">Maximum Slippage Percentage:</label>
-            <input id="max-slippage-swap" type="text"/>
+            <h4 class="swap-control-title">Swap Currencies</h4>
+            <p class="section-description">Exchange tokens for ETH or ETH for tokens at the current rate</p>
+
+            <div class="form-group">
+              <label for="amt-to-swap">Amount to Swap:</label>
+              <input id="amt-to-swap" type="text" placeholder="Enter amount"/>
+            </div>
+
+            <div class="form-group">
+              <label for="max-slippage-swap">Maximum Slippage Percentage:</label>
+              <input id="max-slippage-swap" type="text" placeholder="Enter percentage (e.g. 5)"/>
+              <small class="form-help">Maximum allowed price change during transaction processing</small>
+            </div>
+
             <div id="swap-control-buttons">
               <button id="swap-eth"></button>
               <button id="swap-token"></button>
             </div>
           </div>
+
           <div id="liquidity-control">
-            <h4 class="liquidity-control-title"> Adjust Liquidity: </h4>
-            <label for="amt-eth">Amount in Eth:</label>
-            <input id="amt-eth" type="text"/>
-            <label for="max-slippage-liquid">Maximum Slippage Percentage:</label>
-            <input id="max-slippage-liquid" type="text"/>
+            <h4 class="liquidity-control-title">Adjust Liquidity</h4>
+            <p class="section-description">Add or remove liquidity from the pool to earn fees</p>
+
+            <div class="form-group">
+              <label for="amt-eth">Amount in ETH:</label>
+              <input id="amt-eth" type="text" placeholder="Enter ETH amount"/>
+            </div>
+
+            <div class="form-group">
+              <label for="max-slippage-liquid">Maximum Slippage Percentage:</label>
+              <input id="max-slippage-liquid" type="text" placeholder="Enter percentage (e.g. 5)"/>
+              <small class="form-help">Maximum allowed price change during transaction processing</small>
+            </div>
+
             <div id="liquidity-control-buttons">
               <button id="add-liquidity">Add Liquidity</button>
               <button id="remove-liquidity">Remove Liquidity</button>
@@ -56,13 +94,17 @@
             </div>
           </div>
         </article>
-        <pre id="log"></pre>
-      </div>
-      
 
+      </div>
     </div>
+
+    <footer>
+      <div class="footer-content">
+        <p>&copy; 2025 BBC Exchange. All rights reserved.</p>
+      </div>
+    </footer>
+
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
     <script type="module" src="../web_app/exchange.js"></script>
   </body>
 </html>
-
