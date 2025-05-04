@@ -11,8 +11,8 @@ const token_name = 'Bib Black TOKEN';
 const token_symbol = 'BBC wei';
 
 // Contract addresses
-const token_address = '0xBAb8e13DeF75a95321E9f48d3ec57f2c0141A6c3';
-const exchange_address = '0xE979a64D375F5D363d7cecF3c93B9aFD40Ba9f55';
+const token_address = '0xc74f87d141ED8A41c32ec3d6947485b6f4c11e49';
+const exchange_address = '0x9eBb49B2004C753f6Fb8b3181C224a8972f70528';
 
 // Contract variables to be initialized after loading ABIs
 let token_contract;
@@ -119,6 +119,50 @@ async function getPoolState() {
             token_eth_rate: 0,
             eth_token_rate: 0
         };
+    }
+}
+
+async function listenToContractEvents(contractAddress) {
+    try {
+        console.log(`Listening for events on contract: ${exchange_address}`);
+
+
+        // Listen to all events from this contract
+        exchange_contract.on('*', (event) => {
+            console.log('\n--------------------------------------------');
+            console.log('📣 New Event Detected:');
+            console.log('--------------------------------------------');
+            console.log('Event Name:', event.event);
+            console.log('Block Number:', event.blockNumber);
+            console.log('Transaction Hash:', event.transactionHash);
+            console.log('Arguments:', event.args);
+            console.log('--------------------------------------------\n');
+        });
+
+        // Also listen for new blocks to monitor transactions
+        provider.on('block', async (blockNumber) => {
+            const block = await provider.getBlock(blockNumber, true);
+
+            if (block && block.transactions && block.transactions.length > 0) {
+                console.log(`\n🧱 Block #${blockNumber} with ${block.transactions.length} transactions`);
+
+                // Check for transactions involving our contract
+                for (const tx of block.transactions) {
+                    if (tx.to && tx.to.toLowerCase() === contractAddress.toLowerCase()) {
+                        const receipt = await provider.getTransactionReceipt(tx.hash);
+                        console.log('💼 Contract Transaction:');
+                        console.log('  Hash:', tx.hash);
+                        console.log('  From:', tx.from);
+                        console.log('  Gas Used:', receipt ? receipt.gasUsed.toString() : 'unknown');
+                        console.log('  Status:', receipt ? (receipt.status ? '✅ Success' : '❌ Failed') : 'Pending');
+                    }
+                }
+            }
+        });
+
+        console.log('Event listener established successfully');
+    } catch (error) {
+        console.error('Error setting up event listener:', error);
     }
 }
 
@@ -555,6 +599,10 @@ async function initializeApp() {
             return '<option value="' + a.toLowerCase() + '">' + a.toLowerCase() + '</option>'
         });
         $(".account").html(opts);
+
+        listenToContractEvents()
+            .then(() => console.log('Monitoring started...'))
+            .catch(error => console.error('Failed to start monitoring:', error));
 
     } catch (error) {
         console.error("Error initializing application:", error);
