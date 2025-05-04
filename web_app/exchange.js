@@ -10,8 +10,8 @@ const exchange_name = 'BBC';
 const token_symbol = 'BBC wei';
 
 
-const token_address = '0x982830D87C95479dB81Fe62cd08dd9118D080697';
-const exchange_address = '0x37cA242a94945CdC3d3F155452a82Af6374bebD7';
+const token_address = '0xef11D1c2aA48826D4c41e54ab82D1Ff5Ad8A64Ca';
+const exchange_address = '0x39dD11C243Ac4Ac250980FA3AEa016f73C509f37';
 
 
 let token_contract;
