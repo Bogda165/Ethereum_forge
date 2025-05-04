@@ -1,20 +1,53 @@
-# Compiler files
-cache/
-out/
+# Hardhat/Foundry
+/cache
+/out
+/artifacts
+/node_modules
+/typechain
+/typechain-types
+/.openzeppelin
+coverage
+coverage.json
 
-# Ignores development broadcast logs
-!/broadcast
-/broadcast/*/31337/
-/broadcast/**/dry-run/
-
-# Docs
-docs/
-
-# Dotenv file
+# JavaScript/TypeScript
+node_modules/
+npm-debug.log
+yarn-error.log
 .env
-**/.idea
-**/Db_Store
+dist/
+build/
+coverage/
+*.log
 
-**/coverage-report
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
 
-**/Icov.info
+# IDE/Editor folders
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Misc
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.secret

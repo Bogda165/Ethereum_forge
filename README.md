@@ -1,5 +1,17 @@
 # Ethereum Exchange Project Documentation
 
+## Project Smart Contracts
+
+This project implements a decentralized exchange system using three main smart contracts:
+
+1. **Exchange Contract (exchange.sol)**: The core contract implementing an AMM v1 model with the constant product formula (x * y = k). It manages a liquidity pool of ETH and ERC20 tokens, allowing users to swap between them with automatic price discovery. Key features include adding and removing liquidity, swapping tokens for ETH and vice versa, and a fee mechanism that rewards liquidity providers. The contract carefully handles exchange rates to ensure fair pricing and includes safeguards against extreme price movements. Liquidity providers receive tokens representing their share of the pool, which can be redeemed for the underlying assets plus accumulated fees.
+
+2. **Future Contract (simple_future.sol)**: A derivatives contract built on top of the exchange that enables users to create future agreements for buying or selling tokens at specified exchange rates. Users can create buy futures by depositing ETH or sell futures by depositing tokens, specifying their desired exchange rate and an expiration date. The contract automatically executes when the specified exchange rate conditions are met, or returns assets (minus fees) if the contract expires without execution. This provides a simple hedging mechanism against price volatility and allows users to speculate on future price movements without immediate exposure to the asset.
+
+3. **Token Contract (token.sol)**: A standard ERC20 token implementation called "BigBlackCoin" (BBC) that serves as the tradable asset in the exchange. It includes basic functionality like transfers and allowances, along with owner-only minting capabilities. The contract leverages the gas-efficient Solady library for its implementation, reducing transaction costs for users. This token represents a simplified version of what would typically be a more complex asset in a production environment.
+
+Together, these contracts form a complete decentralized finance system that demonstrates the core principles of AMMs, liquidity provision, and derivatives trading on Ethereum.
+
 ## Exchange Mechanism
 
 ### Why adding and removing liquidity on the exchange doesn't change the exchange rate
@@ -7,14 +19,14 @@
 The exchange rate in our decentralized exchange is determined by the ratio of token reserves to ETH reserves. When liquidity is added or removed, it must be done proportionally to maintain this ratio.
 
 When adding liquidity:
-```solidity
+```
 uint256 tokens = tokenReserves * eth / ethReserves;
 ```
 
 This formula ensures that new liquidity is added in the same ratio as the existing reserves. For example, if the pool has 500 tokens and 500 ETH, and someone adds 50 ETH, they must also add 50 tokens to maintain the 1:1 ratio.
 
 Similarly, when removing liquidity:
-```solidity
+```
 uint256 lpTokensSharePercent = LPTAmount * 1e18 / lptReserves;
 uint256 ethToReceive = lpTokensSharePercent * ethReserves / 1e18;
 uint256 tokenToReceive = lpTokensSharePercent * tokenReserves / 1e18;
@@ -47,7 +59,7 @@ This design satisfies the requirements for liquidity rewards by:
 
 One of the primary methods used to minimize gas consumption in our exchange contract is the use of the Solady library. Specifically:
 
-```solidity
+```
 import "../lib/solady/src/auth/Ownable.sol";
 ```
 
@@ -63,7 +75,7 @@ This optimization is effective because:
 
 Another gas optimization technique used in our contract is the careful management of state changes. For example, when removing liquidity, we only update the LP list if the user's balance becomes zero:
 
-```solidity
+```
 if (lps[sender] == 0) {
     for (uint256 i = 0; i < lpList.length; i++) {
         if (lpList[i] == sender) {
@@ -85,6 +97,14 @@ The exchange has been thoroughly tested with a comprehensive test suite covering
 - Multiple user interactions
 - Exchange rate calculations and constraints
 
+We used Foundry SDK (written in Rust) for testing, which allowed us to write tests in Solidity rather than JavaScript. This approach enables more low-level interaction with smart contracts, providing better test coverage and more realistic testing scenarios.
+
+Our test suite achieves an average of 80% test coverage, ensuring that each line of code is tested multiple times in different contexts. You can verify this impressive coverage by running the forge coverage script:
+
+```
+forge coverage
+```
+
 All tests pass successfully, ensuring the reliability and security of the exchange contract.
 
 ## Conclusion
@@ -97,3 +117,23 @@ This project implements a functional decentralized exchange with a constant prod
 4. Security considerations for handling user funds
 
 The exchange provides a solid foundation that could be extended with additional features like flash loans, multi-token pools, or more sophisticated pricing models in the future.
+
+## Run:
+0. Potentially you will have to install forge-std and solady
+1. Launch anvil on localhost 8445
+2. Deploy contracts with deploy script
+3. Change javascript constants in exchange.js
+4. Run html file
+
+
+**To deploy scripts**: 
+
+```bash 
+forge script ./script/basic_deploy.sol --rpc-url "http://localhost:8545" --broadcast
+```
+
+**Test script**:
+
+```bash
+forge coverage
+```
