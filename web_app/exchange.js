@@ -748,7 +748,7 @@ $(document).ready(function () {
 $("#swap-eth").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     swapETHForTokens($("#amt-to-swap").val(), $("#max-slippage-swap").val()).then(response => {
-
+        window.location.reload(true);
     }).catch(error => {
         console.error("Error swapping ETH for tokens:", error);
     });
@@ -758,7 +758,7 @@ $("#swap-eth").click(function () {
 $("#swap-token").click(function () {
     defaultAccount = $("#myaccount").val(); //sets the default account
     swapTokensForETH($("#amt-to-swap").val(), $("#max-slippage-swap").val()).then(response => {
-
+        window.location.reload(true);
     }).catch(error => {
         console.error("Error swapping tokens for ETH:", error);
     });
@@ -948,15 +948,32 @@ const sanityCheck = async function() {
 /*** SIMPLE FUTURE FUNCTIONS ***/
 
 
-async function createBuyFuture(exchangeRate, amount, durationDays) {
+async function createBuyFuture(maxSlippagePct, amount, durationDays) {
     try {
         console.log(`Creating buy future with exchange rate ${exchangeRate}, amount ${amount} wei, and duration ${durationDays} days`);
 
         const signer = provider.getSigner(defaultAccount);
         const simpleFutureWithSigner = simple_future_contract.connect(signer);
 
+
+        const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
+        const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
+
+        console.log("Current pool state - Token reserves:", tokenReserves.toString(),
+            "ETH reserves:", ethReserves.toString());
+
+        const exchangeRateWeiPerToken = ethReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(tokenReserves);
+        console.log("Base exchange rate (wei per token):", exchangeRateWeiPerToken.toString());
+
+        const maxExchangeRate = exchangeRateWeiPerToken.mul(ethers.BigNumber.from(100 + parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
+        console.log("Max acceptable rate with slippage:", maxExchangeRate.toString());
+
+        const exchangeRateTokenPerWei = tokenReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(ethReserves);
+        console.log("Base exchange rate (token per wei):", exchangeRateTokenPerWei.toString());
+
+        const minExchangeRate = exchangeRateTokenPerWei.mul(ethers.BigNumber.from(100 - parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
         const tx = await simpleFutureWithSigner.createBuyFuture(
-            exchangeRate,
+            minExchangeRate,
             durationDays,
             {
                 value: amount,
@@ -977,13 +994,21 @@ async function createBuyFuture(exchangeRate, amount, durationDays) {
 }
 
 
-async function createSellFuture(tokenAmount, exchangeRate, durationDays) {
+async function createSellFuture(tokenAmount, maxSlippagePct, durationDays) {
     try {
         console.log(`Creating sell future with token amount ${tokenAmount}, exchange rate ${exchangeRate}, and duration ${durationDays} days`);
 
         const signer = provider.getSigner(defaultAccount);
         const tokenWithSigner = token_contract.connect(signer);
         const simpleFutureWithSigner = simple_future_contract.connect(signer);
+        const tokenReserves = ethers.BigNumber.from(poolState.token_liquidity);
+        const ethReserves = ethers.BigNumber.from(poolState.eth_liquidity);
+
+
+        const exchangeRateWeiPerToken = ethReserves.mul(ethers.BigNumber.from("1000000000000000000")).div(tokenReserves);
+        console.log("Base exchange rate (wei per token):", exchangeRateWeiPerToken.toString());
+
+        const maxExchangeRate = exchangeRateWeiPerToken.mul(ethers.BigNumber.from(100 + parseInt(maxSlippagePct))).div(ethers.BigNumber.from(100));
 
 
         const userTokenBalance = await tokenWithSigner.balanceOf(defaultAccount);
@@ -1011,7 +1036,7 @@ async function createSellFuture(tokenAmount, exchangeRate, durationDays) {
 
         const tx = await simpleFutureWithSigner.createSellFuture(
             tokenAmount,
-            exchangeRate,
+            maxExchangeRate,
             durationDays,
             {
                 gasLimit: 300000
@@ -1199,3 +1224,8 @@ function openTab(evt, tabName) {
         });
     }
 }
+
+
+// setTimeout(function () {
+//   sanityCheck();
+// }, 3000);
